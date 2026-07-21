@@ -293,7 +293,7 @@ class VentanaArbol(tk.Tk):
         lf_stats.pack(fill="x", padx=6, pady=(6, 4), ipady=4)
 
         self.txt_stats = tk.Text(lf_stats, height=6, wrap="word", state="disabled",
-                                  bg=COLOR_PAPEL_OSCURO, fg=COLOR_PAPEL, bd=0,
+                                  bg="#FFFFFF", fg="#1A1A1A", bd=0,
                                   font=(FUENTE_MONO, 8), padx=8, pady=6,
                                   highlightthickness=0)
         self.txt_stats.pack(fill="x", padx=6, pady=4)
