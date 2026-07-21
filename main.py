@@ -150,10 +150,31 @@ class VentanaArbol(tk.Tk):
         vbar_g.grid(row=0, column=1, sticky="ns")
         hbar_g.grid(row=1, column=0, sticky="ew")
 
-        # --- PANEL LATERAL DE CONTROL ---
-        self.sidebar = tk.Frame(contenedor, bg=COLOR_FONDO, width=320)
-        self.sidebar.grid(row=0, column=2, rowspan=2, sticky="nsew", padx=(16, 0))
-        self.sidebar.grid_propagate(False)
+        # --- PANEL LATERAL DE CONTROL (Con Scroll) ---
+        self.sidebar_container = tk.Frame(contenedor, bg=COLOR_FONDO, width=320)
+        self.sidebar_container.grid(row=0, column=2, rowspan=2, sticky="nsew", padx=(16, 0))
+        self.sidebar_container.grid_propagate(False)
+        self.sidebar_container.rowconfigure(0, weight=1)
+        self.sidebar_container.columnconfigure(0, weight=1)
+
+        self.sidebar_canvas = tk.Canvas(self.sidebar_container, bg=COLOR_FONDO, highlightthickness=0)
+        self.sidebar_vbar = tk.Scrollbar(self.sidebar_container, orient="vertical", command=self.sidebar_canvas.yview)
+        self.sidebar_canvas.configure(yscrollcommand=self.sidebar_vbar.set)
+        
+        self.sidebar = tk.Frame(self.sidebar_canvas, bg=COLOR_FONDO)
+        self.sidebar_window = self.sidebar_canvas.create_window((0, 0), window=self.sidebar, anchor="nw")
+        
+        self.sidebar.bind("<Configure>", lambda e: self.sidebar_canvas.configure(scrollregion=self.sidebar_canvas.bbox("all")))
+        self.sidebar_canvas.bind("<Configure>", lambda e: self.sidebar_canvas.itemconfig(self.sidebar_window, width=e.width))
+
+        self.sidebar_canvas.grid(row=0, column=0, sticky="nsew")
+        self.sidebar_vbar.grid(row=0, column=1, sticky="ns")
+
+        def _on_mousewheel(event):
+            self.sidebar_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+            
+        self.sidebar_canvas.bind("<Enter>", lambda e: self.sidebar_canvas.bind_all("<MouseWheel>", _on_mousewheel))
+        self.sidebar_canvas.bind("<Leave>", lambda e: self.sidebar_canvas.unbind_all("<MouseWheel>"))
 
         # Título del panel lateral
         tk.Label(self.sidebar, text="ANÁLISIS Y SIMULACIÓN", bg=COLOR_FONDO, fg=COLOR_ORO,
@@ -820,17 +841,19 @@ class VentanaArbol(tk.Tk):
 
         # Construir texto de la matriz
         # Encabezados
-        header = f"{'ID':<10}"
-        for nid in nodos_ids:
-            header += f"{nid[:6]:^7}"
+        header = f"{'Nombre':<12}"
+        nombres_cortos = [self.arbol.nodos[nid].nombre[:8] for nid in nodos_ids]
+        
+        for nom in nombres_cortos:
+            header += f"{nom:^9}"
         header += "\n" + "-" * len(header) + "\n"
         
         txt.insert("end", header)
 
         for i, row in enumerate(matriz):
-            fila_txt = f"{nodos_ids[i][:8]:<10}"
+            fila_txt = f"{nombres_cortos[i]:<12}"
             for val in row:
-                fila_txt += f"{val:^7}"
+                fila_txt += f"{val:^9}"
             txt.insert("end", fila_txt + "\n")
 
         txt.config(state="disabled")
