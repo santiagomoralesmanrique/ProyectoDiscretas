@@ -98,6 +98,7 @@ class VentanaArbol(tk.Tk):
         self._boton(botones, "➕  Agregar persona", self.abrir_dialogo_agregar).pack(side="left", padx=4)
         self._boton(botones, "🎲  Generar Aleatorio", self.abrir_dialogo_generar_aleatorio).pack(side="left", padx=4)
         self._boton(botones, "🗑  Quitar última", self.quitar_ultima).pack(side="left", padx=4)
+        self._boton(botones, "📖  ¿Cómo Funciona?", self.abrir_modo_educativo).pack(side="left", padx=4)
 
         tk.Label(self, text="Datos de prueba — clic en una tarjeta para ver la ficha completa.",
                  bg=COLOR_FONDO, fg=COLOR_MUSGO, font=(FUENTE_MONO, 9)
@@ -746,6 +747,148 @@ class VentanaArbol(tk.Tk):
 
     def abrir_dialogo_generar_aleatorio(self):
         DialogoGenerarAleatorio(self, self.arbol, al_confirmar=self.al_confirmar_agregar)
+
+
+    def abrir_modo_educativo(self):
+        win = tk.Toplevel(self)
+        win.title("Modo Educativo - Como Funciona")
+        win.configure(bg=COLOR_PAPEL)
+        win.geometry("720x560")
+        win.geometry(f"+{self.winfo_rootx() + 40}+{self.winfo_rooty() + 30}")
+        win.resizable(True, True)
+
+        tk.Label(win, text="MODO EDUCATIVO  -  Algoritmos del Proyecto",
+                 bg=COLOR_TINTA, fg=COLOR_ORO,
+                 font=(FUENTE_DISPLAY, 13, "bold"), pady=12).pack(fill="x")
+        tk.Label(win,
+                 text="Cada pestana explica un concepto de Matematicas Discretas implementado en este software.",
+                 bg=COLOR_PAPEL, fg=COLOR_TINTA_SUAVE,
+                 font=(FUENTE_CUERPO, 9), pady=6).pack(fill="x", padx=20)
+
+        style2 = ttk.Style()
+        style2.configure("Edu.TNotebook", background=COLOR_PAPEL, borderwidth=0)
+        style2.configure("Edu.TNotebook.Tab", background="#D5C9A8", foreground=COLOR_TINTA,
+                         font=(FUENTE_MONO, 9, "bold"), padding=(12, 6))
+        style2.map("Edu.TNotebook.Tab",
+                   background=[("selected", COLOR_TINTA)],
+                   foreground=[("selected", COLOR_ORO)])
+
+        nb = ttk.Notebook(win, style="Edu.TNotebook")
+        nb.pack(fill="both", expand=True, padx=16, pady=10)
+
+        tabs = [
+            ("BFS", "Busqueda en Anchura (BFS - Breadth-First Search)",
+             "QUE ES?\n"
+             "BFS recorre un grafo nivel por nivel, explorando todos los vecinos\n"
+             "de un nodo antes de avanzar al siguiente nivel de profundidad.\n\n"
+             "COMO SE USA EN ESTE PROYECTO?\n"
+             "Al buscar el parentesco entre dos personas (ej: Andres y Efrain):\n"
+             "  1. Se coloca a la persona origen en una cola (queue).\n"
+             "  2. Se expanden sus vecinos: padres, hijos, pareja.\n"
+             "  3. Cada visitado se marca para no repetirlo.\n"
+             "  4. Al encontrar al destino, se reconstruye el camino recorrido.\n"
+             "  5. Los pasos se traducen a parentesco en espanol:\n"
+             "     Abuelo/a, Tio/a, Primo/a hermano/a, etc.\n\n"
+             "COMPLEJIDAD:\n"
+             "  Tiempo:   O(V + E)  donde V = personas, E = relaciones\n"
+             "  Espacio:  O(V)      por la cola y el set de visitados\n\n"
+             "GARANTIA MATEMATICA:\n"
+             "  BFS siempre encuentra el camino MAS CORTO entre dos nodos.\n\n"
+             "EJEMPLO:\n"
+             "  Andres --> [sube a Marta] --> [sube a Efrain]\n"
+             "  => Efrain es Abuelo de Andres."),
+
+            ("DFS", "Busqueda en Profundidad (DFS - Depth-First Search)",
+             "QUE ES?\n"
+             "DFS explora tan profundo como sea posible por cada rama antes\n"
+             "de retroceder (backtracking).\n\n"
+             "COMO SE USA EN ESTE PROYECTO?\n\n"
+             "  USO 1 - DETECCION DE CICLOS (Verificar que es DAG):\n"
+             "     Cada nodo tiene 3 colores:\n"
+             "       BLANCO: no visitado aun.\n"
+             "       GRIS:   en proceso (en la pila de recursion actual).\n"
+             "       NEGRO:  finalizado completamente.\n"
+             "     Si durante el DFS se visita un nodo GRIS -> hay ciclo!\n"
+             "     Un arbol genealogico biologico SIEMPRE es DAG valido.\n\n"
+             "  USO 2 - CAMINO HAMILTONIANO:\n"
+             "     DFS con backtracking busca un recorrido que pase\n"
+             "     por CADA persona exactamente UNA sola vez.\n\n"
+             "COMPLEJIDAD:\n"
+             "  Tiempo:   O(V + E)\n"
+             "  Espacio:  O(V)  por la pila de recursion"),
+
+            ("DAG y Ciclos", "Grafos Aciclicos Dirigidos (DAG) y Deteccion de Ciclos",
+             "QUE ES UN DAG?\n"
+             "Un Grafo Dirigido Aciclico (DAG) cumple dos condiciones:\n"
+             "  - Las aristas tienen DIRECCION: padre -> hijo.\n"
+             "  - NO existe ningun ciclo: no puedes volver al nodo de inicio.\n\n"
+             "POR QUE EL ARBOL GENEALOGICO ES UN DAG?\n"
+             "Biologicamente es imposible que una persona sea su propio ancestro.\n"
+             "La relacion padre->hijo es irreversible en el tiempo.\n\n"
+             "ALGORITMO DE VERIFICACION (Coloreo de 3 estados):\n"
+             "  1. Inicialmente todos los nodos estan en BLANCO.\n"
+             "  2. Al visitar un nodo -> cambia a GRIS.\n"
+             "  3. Al terminar con el y sus descendientes -> cambia a NEGRO.\n"
+             "  4. Si encontramos un vecino GRIS -> se detecto un CICLO!\n\n"
+             "GRADOS DE LOS NODOS EN EL GRAFO:\n"
+             "  - Grado Entrada (deg-): cuantos padres tiene (0, 1 o 2).\n"
+             "  - Grado Salida  (deg+): cuantos hijos tiene.\n"
+             "  - Grado Total:  deg- + deg+ + (1 si tiene pareja registrada)\n\n"
+             "Los nodos raiz (fundadores de la familia) tienen deg- = 0.\n"
+             "Los nodos hoja (sin hijos) tienen deg+ = 0."),
+
+            ("Propagacion", "Simulacion Estocastica de Propagacion",
+             "QUE ES UNA SIMULACION ESTOCASTICA?\n"
+             "Es una simulacion basada en probabilidades aleatorias.\n"
+             "El resultado CAMBIA en cada ejecucion (no es determinista).\n\n"
+             "MODELO DE CONTAGIO (Gripe / COVID-19 / Bacteria):\n"
+             "Utiliza BFS por capas (rondas). En cada ronda se evalua:\n\n"
+             "  Para cada vecino v del nodo infectado:\n"
+             "    P_contagio(v) = P_base x (1 - Inmunidad_v)\n\n"
+             "  Si random() < P_contagio(v)  ->  v queda INFECTADO.\n\n"
+             "  Inmunidad_v esta en [0.0, 1.0] y es especifica para\n"
+             "  cada enfermedad (Gripe, COVID-19 o Bacteria).\n\n"
+             "EJEMPLO MANUAL:\n"
+             "  P_base = 0.80  |  Inmunidad_gripe(Marta) = 0.40\n"
+             "  P_contagio(Marta) = 0.80 x (1 - 0.40) = 0.48  (48%)\n\n"
+             "HERENCIA MULTIFACTORIAL:\n"
+             "  P_herencia(d) = P_base x 0.5^d\n"
+             "  d = distancia generacional del nodo al origen.\n"
+             "  Nieto (d=2): P = P_base x 0.25\n\n"
+             "HERENCIA MENDELIANA:\n"
+             "  Modela alelos dominantes (A) y recesivos (a).\n"
+             "  Un individuo con alelo A transmite el rasgo con P = 0.75."),
+        ]
+
+        for tab_titulo, subtitulo, contenido in tabs:
+            f = tk.Frame(nb, bg=COLOR_PAPEL)
+            nb.add(f, text=f"  {tab_titulo}  ")
+
+            tk.Label(f, text=subtitulo, bg=COLOR_PAPEL, fg=COLOR_TINTA,
+                     font=(FUENTE_DISPLAY, 11, "bold"), pady=10,
+                     wraplength=660, justify="left").pack(anchor="w", padx=20, pady=(10, 0))
+
+            tk.Frame(f, bg=COLOR_ORO, height=2).pack(fill="x", padx=20, pady=(4, 8))
+
+            ft = tk.Frame(f, bg=COLOR_PAPEL)
+            ft.pack(fill="both", expand=True, padx=20, pady=(0, 12))
+
+            txt = tk.Text(ft, wrap="word", bg="#FAFAFA", fg=COLOR_TINTA,
+                          font=(FUENTE_MONO, 9), padx=16, pady=12,
+                          relief="flat", bd=0, highlightthickness=1,
+                          highlightbackground="#CCCCCC")
+            sc = tk.Scrollbar(ft, orient="vertical", command=txt.yview)
+            txt.configure(yscrollcommand=sc.set)
+            txt.pack(side="left", fill="both", expand=True)
+            sc.pack(side="right", fill="y")
+            txt.insert("end", contenido)
+            txt.config(state="disabled")
+
+        tk.Button(win, text="   Cerrar   ", command=win.destroy,
+                  bg=COLOR_TINTA, fg=COLOR_ORO,
+                  font=(FUENTE_MONO, 10, "bold"),
+                  relief="flat", cursor="hand2",
+                  padx=20, pady=8).pack(pady=(0, 14))
 
     def quitar_ultima(self):
         if not self.arbol.nodos:
