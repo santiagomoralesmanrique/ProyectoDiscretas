@@ -286,13 +286,68 @@ class VentanaArbol(tk.Tk):
         self._boton_chico(f_botones_sim, "🔥  Simular", self.ejecutar_simulacion).pack(side="left")
         self._boton_chico(f_botones_sim, "🧹 Reset", self.limpiar_simulacion).pack(side="right")
 
-        self.canvas.bind("<Button-1>", self._al_hacer_clic)
+        # --- Panel de Estadísticas de Propagación ---
+        lf_stats = tk.LabelFrame(lf_sim, text="  📊 Estadísticas en Tiempo Real  ",
+                                  bg=COLOR_FONDO, fg=COLOR_ORO,
+                                  font=(FUENTE_CUERPO, 8, "bold"), bd=1, relief="solid")
+        lf_stats.pack(fill="x", padx=6, pady=(6, 4), ipady=4)
+
+        self.txt_stats = tk.Text(lf_stats, height=6, wrap="word", state="disabled",
+                                  bg=COLOR_PAPEL_OSCURO, fg=COLOR_PAPEL, bd=0,
+                                  font=(FUENTE_MONO, 8), padx=8, pady=6,
+                                  highlightthickness=0)
+        self.txt_stats.pack(fill="x", padx=6, pady=4)
+        self._stats_reset()
 
     def _boton(self, master, texto, comando):
         return tk.Button(master, text=texto, command=comando,
                           bg=COLOR_BOTON, fg=COLOR_BOTON_TEXTO, activebackground=COLOR_ORO,
                           activeforeground=COLOR_TINTA, font=(FUENTE_MONO, 9), relief="flat",
                           padx=10, pady=6, cursor="hand2", bd=0)
+
+    # -----------------------------------------------------------
+    # Estadísticas de propagación
+    # -----------------------------------------------------------
+    def _stats_reset(self):
+        """Limpia el panel de estadísticas y muestra el mensaje inicial."""
+        self.txt_stats.config(state="normal")
+        self.txt_stats.delete("1.0", "end")
+        self.txt_stats.insert("end", "⏳ Esperando simulación...\nPresiona Simular para ver\nlas estadísticas en tiempo real.")
+        self.txt_stats.config(state="disabled")
+
+    def _stats_actualizar(self, pasos, idx_paso):
+        """Actualiza el texto de estadísticas al finalizar la ronda idx_paso."""
+        total_personas = len(self.arbol.nodos)
+        if total_personas == 0:
+            return
+
+        # Acumular todos los nodos revelados hasta esta ronda
+        infectados_acum = set()
+        for i in range(idx_paso + 1):
+            for nid in pasos[i]:
+                infectados_acum.add(nid)
+
+        total_infectados = len(infectados_acum)
+        porcentaje = (total_infectados / total_personas) * 100
+
+        self.txt_stats.config(state="normal")
+        self.txt_stats.delete("1.0", "end")
+
+        # Una línea por ronda ya transcurrida
+        for i in range(idx_paso + 1):
+            cant_ronda = len(pasos[i])
+            self.txt_stats.insert("end", f"🔴 Ronda {i}: {cant_ronda} afectado{'s' if cant_ronda != 1 else ''}\n")
+
+        self.txt_stats.insert("end", "-" * 28 + "\n")
+        self.txt_stats.insert("end", f"🧬 Total: {total_infectados}/{total_personas} ({porcentaje:.1f}%)\n")
+
+        if idx_paso + 1 >= len(pasos):
+            sanos = total_personas - total_infectados
+            self.txt_stats.insert("end", f"✅ Sanos: {sanos} | ✔ Simulación completa")
+
+        self.txt_stats.config(state="disabled")
+        # Desplazar al final
+        self.txt_stats.see("end")
 
     # -----------------------------------------------------------
     # Layout
@@ -1013,6 +1068,9 @@ class VentanaArbol(tk.Tk):
         # Restaurar estados reales
         for nid, nodo in self.arbol.nodos.items():
             nodo.estado_simulado = estados_temporales[nid]
+
+        # Actualizar estadísticas de esta ronda
+        self._stats_actualizar(pasos, idx_paso)
             
         # Siguiente ronda
         self._programar(800, lambda: self._animar_pasos_simulacion(pasos, idx_paso + 1))
@@ -1021,6 +1079,7 @@ class VentanaArbol(tk.Tk):
         for n in self.arbol.nodos.values():
             n.estado_simulado = None
         self.redibujar_arbol_completo()
+        self._stats_reset()
 
 
 class DialogoAgregarPersona(tk.Toplevel):
