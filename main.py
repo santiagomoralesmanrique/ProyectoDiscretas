@@ -16,7 +16,7 @@ Controles:
 """
 
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import ttk, messagebox
 
 from arbol import ArbolGenealogico
 import datos_prueba
@@ -110,14 +110,45 @@ class VentanaArbol(tk.Tk):
         contenedor.columnconfigure(1, weight=0)
         contenedor.columnconfigure(2, weight=0)
 
-        self.canvas = tk.Canvas(contenedor, bg=COLOR_FONDO, highlightthickness=0)
-        vbar = tk.Scrollbar(contenedor, orient="vertical", command=self.canvas.yview)
-        hbar = tk.Scrollbar(contenedor, orient="horizontal", command=self.canvas.xview)
-        self.canvas.configure(yscrollcommand=vbar.set, xscrollcommand=hbar.set)
+        style = ttk.Style()
+        style.theme_use("default")
+        style.configure("TNotebook", background=COLOR_FONDO, borderwidth=0)
+        style.configure("TNotebook.Tab", background=COLOR_BOTON, foreground=COLOR_BOTON_TEXTO,
+                         font=(FUENTE_MONO, 9), padding=(14, 6))
+        style.map("TNotebook.Tab", background=[("selected", COLOR_ORO)],
+                  foreground=[("selected", COLOR_TINTA)])
 
+        self.notebook = ttk.Notebook(contenedor)
+        self.notebook.grid(row=0, column=0, columnspan=2, rowspan=2, sticky="nsew")
+        self.notebook.bind("<<NotebookTabChanged>>", self._al_cambiar_pestaña)
+
+        # --- Pestaña 1: árbol genealógico ---
+        tab_arbol = tk.Frame(self.notebook, bg=COLOR_FONDO)
+        tab_arbol.rowconfigure(0, weight=1)
+        tab_arbol.columnconfigure(0, weight=1)
+        self.notebook.add(tab_arbol, text="  Árbol Genealógico  ")
+
+        self.canvas = tk.Canvas(tab_arbol, bg=COLOR_FONDO, highlightthickness=0)
+        vbar = tk.Scrollbar(tab_arbol, orient="vertical", command=self.canvas.yview)
+        hbar = tk.Scrollbar(tab_arbol, orient="horizontal", command=self.canvas.xview)
+        self.canvas.configure(yscrollcommand=vbar.set, xscrollcommand=hbar.set)
         self.canvas.grid(row=0, column=0, sticky="nsew")
         vbar.grid(row=0, column=1, sticky="ns")
         hbar.grid(row=1, column=0, sticky="ew")
+
+        # --- Pestaña 2: vista de grafo abstracto ---
+        tab_grafo = tk.Frame(self.notebook, bg=COLOR_FONDO)
+        tab_grafo.rowconfigure(0, weight=1)
+        tab_grafo.columnconfigure(0, weight=1)
+        self.notebook.add(tab_grafo, text="   Vista de Grafo  ")
+
+        self.canvas_grafo = tk.Canvas(tab_grafo, bg=COLOR_FONDO, highlightthickness=0)
+        vbar_g = tk.Scrollbar(tab_grafo, orient="vertical", command=self.canvas_grafo.yview)
+        hbar_g = tk.Scrollbar(tab_grafo, orient="horizontal", command=self.canvas_grafo.xview)
+        self.canvas_grafo.configure(yscrollcommand=vbar_g.set, xscrollcommand=hbar_g.set)
+        self.canvas_grafo.grid(row=0, column=0, sticky="nsew")
+        vbar_g.grid(row=0, column=1, sticky="ns")
+        hbar_g.grid(row=1, column=0, sticky="ew")
 
         # --- PANEL LATERAL DE CONTROL ---
         self.sidebar = tk.Frame(contenedor, bg=COLOR_FONDO, width=320)
@@ -142,10 +173,34 @@ class VentanaArbol(tk.Tk):
         self.lbl_dag_conexo.pack(anchor="w", padx=10, pady=2)
         
         self.lbl_euler_hamilton = tk.Label(lf_analisis, text="Haz clic en calcular para ver\nlas propiedades discretas.", bg=COLOR_FONDO, fg=COLOR_PAPEL_OSCURO,
-                                            font=(FUENTE_CUERPO, 8), justify="left")
+                                            font=(FUENTE_CUERPO, 8), justify="left", wraplength=290)
         self.lbl_euler_hamilton.pack(anchor="w", padx=10, pady=2)
         
         self._boton_chico(lf_analisis, "📊  Calcular Propiedades", self.ejecutar_analisis).pack(anchor="e", padx=10, pady=4)
+    
+        tk.Label(lf_analisis, text="Colores en 'Vista de Grafo':", bg=COLOR_FONDO, fg=COLOR_PAPEL,
+                 font=(FUENTE_CUERPO, 8, "bold")).pack(anchor="w", padx=10, pady=(6, 2))
+        self._fila_leyenda_color(lf_analisis, "#C0392B", "Rojo = persona con grado impar")
+        self._fila_leyenda_color(lf_analisis, COLOR_MUSGO, "Verde = persona con grado par")
+        self._fila_leyenda_color(lf_analisis, COLOR_ORO, "Dorado = línea del camino Hamiltoniano")
+
+        # Lista de personas con grado impar (se llena al calcular propiedades)
+        self.lbl_titulo_impares = tk.Label(lf_analisis, text="", bg=COLOR_FONDO, fg=COLOR_PAPEL,
+                                            font=(FUENTE_CUERPO, 8, "bold"))
+        self.lbl_titulo_impares.pack(anchor="w", padx=10, pady=(6, 2))
+
+        frame_lista_impares = tk.Frame(lf_analisis, bg=COLOR_FONDO)
+        frame_lista_impares.pack(fill="x", padx=10, pady=(0, 4))
+
+        scroll_impares = tk.Scrollbar(frame_lista_impares, orient="vertical")
+        self.listbox_impares = tk.Listbox(frame_lista_impares, height=4, bg=COLOR_PAPEL, fg=COLOR_TINTA,
+                                           font=(FUENTE_CUERPO, 8), selectbackground=COLOR_ORO,
+                                           relief="flat", bd=0, highlightthickness=1,
+                                           highlightbackground=COLOR_TINTA_SUAVE,
+                                           yscrollcommand=scroll_impares.set)
+        scroll_impares.config(command=self.listbox_impares.yview)
+        self.listbox_impares.pack(side="left", fill="x", expand=True)
+        scroll_impares.pack(side="right", fill="y")
 
         # SECCIÓN 2: Buscar Parentesco
         lf_camino = tk.LabelFrame(self.sidebar, text="  Buscar Parentesco  ", bg=COLOR_FONDO, fg=COLOR_PAPEL,
@@ -225,6 +280,71 @@ class VentanaArbol(tk.Tk):
         alto = 160 + (self.arbol.generacion_maxima() + 1) * 170
         self.arbol.calcular_posiciones(ancho_lienzo=ancho, alto_fila=170)
         self.canvas.configure(scrollregion=(0, 0, ancho, alto))
+
+    # -----------------------------------------------------------
+    # Redibujo del grafo
+    # -----------------------------------------------------------
+    def _al_cambiar_pestaña(self, event):
+        """Redibuja el grafo abstracto cada vez que el usuario entra a esa pestaña."""
+        pestaña_actual = self.notebook.tab(self.notebook.select(), "text")
+        if "Vista de Grafo" in pestaña_actual:
+            self._dibujar_vista_grafo()
+    # -----------------------------------------------------------
+    # dibujo del grafo
+    # -----------------------------------------------------------
+    def _dibujar_vista_grafo(self):
+        """Dibuja el grafo como circulos + lineas, resaltando grado impar y camino hamiltoniano."""
+        self.canvas_grafo.delete("all")
+        nodos = list(self.arbol.nodos.values())
+        n = len(nodos)
+        if n == 0:
+            return
+
+        import math
+        radio = max(150, n * 20)
+        cx, cy = radio + 60, radio + 60
+        posiciones = {}
+        for i, nodo in enumerate(nodos):
+            ang = 2 * math.pi * i / n
+            x = cx + radio * math.cos(ang)
+            y = cy + radio * math.sin(ang)
+            posiciones[nodo.id] = (x, y)
+
+        self.canvas_grafo.configure(scrollregion=(0, 0, cx * 2 + 60, cy * 2 + 60))
+
+        info = getattr(self, "info_grafo_actual", None) or self.arbol.analizar_propiedades_discretas()
+        grados = self.arbol.obtener_grados()
+        ruta_ham = info.get("ruta_hamiltoniana") or []
+        aristas_ham = set(zip(ruta_ham, ruta_ham[1:]))
+
+        dibujadas = set()
+        for nodo in nodos:
+            vecinos = list(nodo.hijos)
+            if nodo.pareja:
+                vecinos.append(nodo.pareja)
+            for vecino in vecinos:
+                clave = tuple(sorted([nodo.id, vecino.id]))
+                if clave in dibujadas:
+                    continue
+                dibujadas.add(clave)
+                x1, y1 = posiciones[nodo.id]
+                x2, y2 = posiciones[vecino.id]
+                en_camino = (nodo.id, vecino.id) in aristas_ham or (vecino.id, nodo.id) in aristas_ham
+                color = COLOR_ORO if en_camino else COLOR_TINTA_SUAVE
+                ancho = 3 if en_camino else 1
+                self.canvas_grafo.create_line(x1, y1, x2, y2, fill=color, width=ancho)
+
+        for nodo in nodos:
+            x, y = posiciones[nodo.id]
+            grado = grados[nodo.id]["total"]
+            es_impar = grado % 2 != 0
+            color_relleno = "#C0392B" if es_impar else COLOR_MUSGO
+            self.canvas_grafo.create_oval(x - 22, y - 22, x + 22, y + 22,
+                                           fill=color_relleno, outline=COLOR_PAPEL, width=2)
+            self.canvas_grafo.create_text(x, y, text=nodo.nombre, fill=COLOR_PAPEL,
+                                           font=(FUENTE_MONO, 8, "bold"))
+            self.canvas_grafo.create_text(x, y + 32, text=f"grado {grado}", fill=COLOR_PAPEL_OSCURO,
+                                           font=(FUENTE_MONO, 7))
 
     # -----------------------------------------------------------
     # Animación de construcción
@@ -563,6 +683,19 @@ class VentanaArbol(tk.Tk):
                           bg=COLOR_BOTON, fg=COLOR_BOTON_TEXTO, activebackground=COLOR_ORO,
                           activeforeground=COLOR_TINTA, font=(FUENTE_MONO, 8), relief="flat",
                           padx=6, pady=4, cursor="hand2", bd=0)
+    
+    def _fila_leyenda_color(self, master, color_hex, texto):
+        """Crea una fila con un círculo de color real (no emoji) + texto explicativo."""
+        fila = tk.Frame(master, bg=COLOR_FONDO)
+        fila.pack(anchor="w", padx=10, pady=1, fill="x")
+
+        mini_canvas = tk.Canvas(fila, width=14, height=14, bg=COLOR_FONDO, highlightthickness=0)
+        mini_canvas.create_oval(1, 1, 13, 13, fill=color_hex, outline="")
+        mini_canvas.pack(side="left", padx=(0, 6))
+
+        tk.Label(fila, text=texto, bg=COLOR_FONDO, fg=COLOR_PAPEL_OSCURO,
+                 font=(FUENTE_CUERPO, 8), justify="left", wraplength=250, anchor="w"
+                 ).pack(side="left", fill="x", expand=True)
 
     def _al_cambiar_tipo_sim(self, valor):
         if valor.startswith("Contagio:"):
@@ -649,21 +782,48 @@ class VentanaArbol(tk.Tk):
         texto_dag_conexo = f"¿Es DAG (relación biológica sin ciclos)? {'Sí (Válido)' if propiedades['dag'] else 'No (Incorrecto)'}\n¿Toda la familia está conectada? {'Sí (Conexo)' if propiedades['conexo'] else 'No (Bosque)'}"
         
         explicacion_euler_hamilton = ""
+        cant_impares = propiedades['cantidad_nodos_impares']
+        nombres_impares = propiedades['nombres_nodos_impares']
+
         if propiedades['euleriano']:
-            explicacion_euler_hamilton += "• Camino Euleriano: Existe (se pueden recorrer todas las líneas sin repetir).\n"
+            explicacion_euler_hamilton += (
+                f"• Camino Euleriano: Existe (todas las personas tienen grado par, "
+                f"o hay exactamente 2 con grado impar).\n"
+            )
         else:
-            explicacion_euler_hamilton += "• Camino Euleriano: No existe (grados impares > 2).\n"
-            
+            if cant_impares > 2:
+                explicacion_euler_hamilton += (
+                    f"• Camino Euleriano: No existe. Hay {cant_impares} personas con grado "
+                    f"impar (deberían ser 0 o 2, ver lista abajo).\n"
+                )
+            else:
+                explicacion_euler_hamilton += (
+                    f"• Camino Euleriano: No existe (el árbol no está totalmente conectado).\n"
+                )
+
         if propiedades['hamiltoniano']:
-            explicacion_euler_hamilton += "• Camino Hamiltoniano: Existe (recorrido de personas sin repetir).\n"
+            explicacion_euler_hamilton += "• Camino Hamiltoniano: Existe — resaltado en dorado en la pestaña 'Vista de Grafo'.\n"
         else:
-            explicacion_euler_hamilton += "• Camino Hamiltoniano: No existe (las ramificaciones lo impiden).\n"
+            explicacion_euler_hamilton += "• Camino Hamiltoniano: No existe (las ramificaciones lo impiden; no hay forma de visitar a todos sin repetir).\n"
+
+        # Llenar la lista de personas con grado impar
+        self.listbox_impares.delete(0, tk.END)
+        if cant_impares > 0:
+            self.lbl_titulo_impares.config(text=f"Personas con grado impar ({cant_impares}):")
+            for nombre in nombres_impares:
+                self.listbox_impares.insert(tk.END, f"• {nombre}")
+        else:
+            self.lbl_titulo_impares.config(text="Personas con grado impar: ninguna ✔")
             
         texto_grados = f"Persona con más relaciones: {propiedades['max_grado_nombre']} (Grado: {propiedades['max_grado']})"
         
         self.lbl_nodos_edges.config(text=texto_nodos_edges, fg=COLOR_PAPEL)
         self.lbl_dag_conexo.config(text=texto_dag_conexo, fg=COLOR_PAPEL)
         self.lbl_euler_hamilton.config(text=explicacion_euler_hamilton + texto_grados, fg=COLOR_PAPEL_OSCURO)
+
+        # Guardar el resultado y saltar a la pestaña "Vista de Grafo"
+        self.info_grafo_actual = propiedades
+        self.notebook.select(1)   # dispara _al_cambiar_pestaña, que llama a _dibujar_vista_grafo
 
     def ejecutar_busqueda_parentesco(self):
         # Limpiar cualquier resaltado anterior

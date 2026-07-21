@@ -412,8 +412,10 @@ class ArbolGenealogico:
 
         # Eulerian Path en grafo no dirigido
         # Todos los vértices impares deben ser 0 o 2.
-        impares = sum(1 for k in grados.values() if k['total'] % 2 != 0)
+        nodos_impares = [k for k, v in grados.items() if v['total'] % 2 != 0]
+        impares = len(nodos_impares)
         euleriano = conexo and (impares == 0 or impares == 2)
+        nombres_impares = [self.nodos[nid].nombre_completo() for nid in nodos_impares]
 
         # Hamiltonian Path
         hamiltoniano_ruta = self.encontrar_camino_hamiltoniano()
@@ -428,7 +430,9 @@ class ArbolGenealogico:
             "max_grado_nombre": max_nombre,
             "euleriano": euleriano,
             "hamiltoniano": hamiltoniano,
-            "ruta_hamiltoniana": hamiltoniano_ruta
+            "ruta_hamiltoniana": hamiltoniano_ruta,
+            "cantidad_nodos_impares": impares,
+            "nombres_nodos_impares": nombres_impares
         }
 
     # -----------------------------------------------------------
