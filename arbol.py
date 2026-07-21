@@ -384,6 +384,26 @@ class ArbolGenealogico:
                 return res
         return None
 
+    def generar_matriz_adyacencia(self):
+        """Genera la matriz de adyacencia dirigida del árbol genealógico.
+        Si hay una arista de i a j (i es padre/madre de j), la entrada es 1.
+        Devuelve una tupla: (lista_ids, matriz_2d)"""
+        nodos_ids = list(self.nodos.keys())
+        n = len(nodos_ids)
+        # Inicializar matriz nxn con ceros
+        matriz = [[0] * n for _ in range(n)]
+        
+        # Mapeo de ID a índice
+        idx_map = {nid: i for i, nid in enumerate(nodos_ids)}
+        
+        for nid, nodo in self.nodos.items():
+            i = idx_map[nid]
+            for hijo in nodo.hijos:
+                j = idx_map[hijo.id]
+                matriz[i][j] = 1
+                
+        return nodos_ids, matriz
+
     def analizar_propiedades_discretas(self):
         """Realiza un análisis completo de teoría de grafos del árbol."""
         grados = self.obtener_grados()

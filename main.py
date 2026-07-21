@@ -176,7 +176,10 @@ class VentanaArbol(tk.Tk):
                                             font=(FUENTE_CUERPO, 8), justify="left", wraplength=290)
         self.lbl_euler_hamilton.pack(anchor="w", padx=10, pady=2)
         
-        self._boton_chico(lf_analisis, "📊  Calcular Propiedades", self.ejecutar_analisis).pack(anchor="e", padx=10, pady=4)
+        f_botones_analisis = tk.Frame(lf_analisis, bg=COLOR_FONDO)
+        f_botones_analisis.pack(fill="x", padx=10, pady=4)
+        self._boton_chico(f_botones_analisis, "🧮  Ver Matriz", self.abrir_dialogo_matriz).pack(side="left")
+        self._boton_chico(f_botones_analisis, "📊  Calcular Propiedades", self.ejecutar_analisis).pack(side="right")
     
         tk.Label(lf_analisis, text="Colores en 'Vista de Grafo':", bg=COLOR_FONDO, fg=COLOR_PAPEL,
                  font=(FUENTE_CUERPO, 8, "bold")).pack(anchor="w", padx=10, pady=(6, 2))
@@ -774,6 +777,67 @@ class VentanaArbol(tk.Tk):
         # 3. Dibujar tarjetas
         for nodo in self.arbol.nodos.values():
             self._dibujar_tarjeta(nodo, escala=1.0)
+
+    def abrir_dialogo_matriz(self):
+        try:
+            nodos_ids, matriz = self.arbol.generar_matriz_adyacencia()
+        except AttributeError:
+            messagebox.showinfo("No implementado", "El método de matriz de adyacencia aún no está disponible.")
+            return
+
+        if not nodos_ids:
+            messagebox.showinfo("Árbol vacío", "No hay personas en el árbol para mostrar la matriz.")
+            return
+
+        dialogo = tk.Toplevel(self)
+        dialogo.title("Matriz de Adyacencia Dirigida")
+        dialogo.configure(bg=COLOR_PAPEL)
+        dialogo.geometry("600x500")
+        # Centrar sobre la ventana principal
+        dialogo.geometry(f"+{self.winfo_rootx() + 50}+{self.winfo_rooty() + 50}")
+
+        lbl_titulo = tk.Label(dialogo, text="MATRIZ DE ADYACENCIA", bg=COLOR_PAPEL, fg=COLOR_TINTA, font=(FUENTE_DISPLAY, 14, "bold"))
+        lbl_titulo.pack(pady=10)
+
+        lbl_desc = tk.Label(dialogo, text="Un '1' indica que la persona en la fila es progenitor/a de la persona en la columna.\nMostrando los IDs truncados.",
+                            bg=COLOR_PAPEL, fg=COLOR_TINTA_SUAVE, font=(FUENTE_CUERPO, 9))
+        lbl_desc.pack(pady=(0, 10))
+
+        frame_txt = tk.Frame(dialogo, bg=COLOR_PAPEL)
+        frame_txt.pack(fill="both", expand=True, padx=15, pady=10)
+
+        txt = tk.Text(frame_txt, wrap="none", font=(FUENTE_MONO, 10), bg=COLOR_PAPEL_OSCURO, fg=COLOR_TINTA, bd=0, padx=10, pady=10)
+        h_scroll = tk.Scrollbar(frame_txt, orient="horizontal", command=txt.xview)
+        v_scroll = tk.Scrollbar(frame_txt, orient="vertical", command=txt.yview)
+        txt.configure(xscrollcommand=h_scroll.set, yscrollcommand=v_scroll.set)
+
+        txt.grid(row=0, column=0, sticky="nsew")
+        v_scroll.grid(row=0, column=1, sticky="ns")
+        h_scroll.grid(row=1, column=0, sticky="ew")
+
+        frame_txt.rowconfigure(0, weight=1)
+        frame_txt.columnconfigure(0, weight=1)
+
+        # Construir texto de la matriz
+        # Encabezados
+        header = f"{'ID':<10}"
+        for nid in nodos_ids:
+            header += f"{nid[:6]:^7}"
+        header += "\n" + "-" * len(header) + "\n"
+        
+        txt.insert("end", header)
+
+        for i, row in enumerate(matriz):
+            fila_txt = f"{nodos_ids[i][:8]:<10}"
+            for val in row:
+                fila_txt += f"{val:^7}"
+            txt.insert("end", fila_txt + "\n")
+
+        txt.config(state="disabled")
+
+        btn_cerrar = tk.Button(dialogo, text="Cerrar", command=dialogo.destroy, bg=COLOR_BOTON, fg=COLOR_BOTON_TEXTO,
+                               font=(FUENTE_MONO, 9), cursor="hand2", relief="flat", padx=15, pady=6)
+        btn_cerrar.pack(pady=15)
 
     def ejecutar_analisis(self):
         propiedades = self.arbol.analizar_propiedades_discretas()
