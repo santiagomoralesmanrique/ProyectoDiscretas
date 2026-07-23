@@ -430,6 +430,9 @@ class VentanaArbol(tk.Tk):
         # Fase 2: Animar el trazado de cada arista
         def animar_aristas(idx=0):
             if idx >= len(aristas):
+                #sobreponer los nodos para evitar bugs
+                for nodo in nodos:
+                    self.canvas_grafo.tag_raise(f"nodo_g_{nodo.id}")
                 return
             id1, id2, en_camino = aristas[idx]
             x1, y1 = posiciones[id1]
@@ -460,6 +463,7 @@ class VentanaArbol(tk.Tk):
                                            font=(FUENTE_MONO, 8, "bold"), tags=(tag_nodo, nodo.id))
             self.canvas_grafo.create_text(x, y + 32, text=f"grado {grado}", fill=COLOR_PAPEL_OSCURO,
                                            font=(FUENTE_MONO, 7), tags=(tag_nodo, nodo.id))
+            self.canvas_grafo.tag_bind(nodo.id, "<Button-1>", lambda event, n=nodo: self._mostrar_ficha(n))
         else:
             self._programar(18, lambda: self._animar_aparicion_nodo_grafo(nodo, pos, grado, paso + 1, total_pasos))
 
@@ -689,8 +693,9 @@ class VentanaArbol(tk.Tk):
     def _al_hacer_clic(self, evento):
         x = self.canvas.canvasx(evento.x)
         y = self.canvas.canvasy(evento.y)
-        for item in self.canvas.find_overlapping(x, y, x, y):
-            id_nodo = next((t for t in self.canvas.gettags(item) if t in self.arbol.nodos), None)
+        for item in self.canvas.find_overlapping(x-5, y-5,x+5,y+5):
+            tags = self.canvas.gettags(item)
+            id_nodo = next((t for t in tags if t in self.arbol.nodos), None)
             if id_nodo:
                 self._mostrar_ficha(self.arbol.nodos[id_nodo])
                 return
@@ -699,7 +704,7 @@ class VentanaArbol(tk.Tk):
     def _al_hacer_clic_grafo(self, evento):
         x = self.canvas_grafo.canvasx(evento.x)
         y = self.canvas_grafo.canvasy(evento.y)
-        for item in self.canvas_grafo.find_overlapping(x - 5, y - 5, x + 5, y + 5):
+        for item in self.canvas_grafo.find_overlapping(x - 15, y - 15, x + 15, y + 15):
             tags = self.canvas_grafo.gettags(item)
             id_nodo = next((k for k in self.arbol.nodos.keys() if str(k) in tags), None)
             if id_nodo:
