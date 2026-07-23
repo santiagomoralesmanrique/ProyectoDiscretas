@@ -363,18 +363,23 @@ class VentanaArbol(tk.Tk):
         self.canvas.configure(scrollregion=(0, 0, ancho, alto))
 
     # -----------------------------------------------------------
-    # Redibujo del grafo
+    # Animacion del grafo
     # -----------------------------------------------------------
     def _al_cambiar_pestaña(self, event):
-        """Redibuja el grafo abstracto cada vez que el usuario entra a esa pestaña."""
+        """Anima el grafo al cambiar de pestaña"""
         pestaña_actual = self.notebook.tab(self.notebook.select(), "text")
         if "Vista de Grafo" in pestaña_actual:
-            self._dibujar_vista_grafo()
-    # -----------------------------------------------------------
-    # dibujo del grafo
-    # -----------------------------------------------------------
+            self._animar_vista_grafo()
+        else:
+            self.reiniciar_animacion()
+
     def _dibujar_vista_grafo(self):
-        """Dibuja el grafo como circulos + lineas, resaltando grado impar y camino hamiltoniano."""
+        """anima el grafo"""
+        self._animar_vista_grafo()
+
+    def _animar_vista_grafo(self):
+        """va animando el grafo por nodo y conectando en orden las aristas"""
+        self._cancelar_animaciones_pendientes()
         self.canvas_grafo.delete("all")
         nodos = list(self.arbol.nodos.values())
         n = len(nodos)
@@ -399,6 +404,7 @@ class VentanaArbol(tk.Tk):
         aristas_ham = set(zip(ruta_ham, ruta_ham[1:]))
 
         dibujadas = set()
+        aristas = []
         for nodo in nodos:
             vecinos = list(nodo.hijos)
             if nodo.pareja:
@@ -408,24 +414,67 @@ class VentanaArbol(tk.Tk):
                 if clave in dibujadas:
                     continue
                 dibujadas.add(clave)
-                x1, y1 = posiciones[nodo.id]
-                x2, y2 = posiciones[vecino.id]
                 en_camino = (nodo.id, vecino.id) in aristas_ham or (vecino.id, nodo.id) in aristas_ham
-                color = COLOR_ORO if en_camino else COLOR_TINTA_SUAVE
-                ancho = 3 if en_camino else 1
-                self.canvas_grafo.create_line(x1, y1, x2, y2, fill=color, width=ancho)
+                aristas.append((nodo.id, vecino.id, en_camino))
 
-        for nodo in nodos:
-            x, y = posiciones[nodo.id]
-            grado = grados[nodo.id]["total"]
-            es_impar = grado % 2 != 0
-            color_relleno = "#C0392B" if es_impar else COLOR_MUSGO
-            self.canvas_grafo.create_oval(x - 22, y - 22, x + 22, y + 22,
-                                           fill=color_relleno, outline=COLOR_PAPEL, width=2)
+        # Fase 1: Animar la aparición de nodos secuencialmente
+        def animar_nodos(idx=0):
+            if idx >= len(nodos):
+                # Fase 2: Animar trazado de aristas tras aparecer los nodos
+                animar_aristas(0)
+                return
+            nodo = nodos[idx]
+            self._animar_aparicion_nodo_grafo(nodo, posiciones[nodo.id], grados[nodo.id]["total"])
+            self._programar(60, lambda: animar_nodos(idx + 1))
+
+        # Fase 2: Animar el trazado de cada arista
+        def animar_aristas(idx=0):
+            if idx >= len(aristas):
+                return
+            id1, id2, en_camino = aristas[idx]
+            x1, y1 = posiciones[id1]
+            x2, y2 = posiciones[id2]
+            color = COLOR_ORO if en_camino else COLOR_TINTA_SUAVE
+            ancho = 3 if en_camino else 1
+            tag = f"arista_g_{id1}_{id2}"
+            self._animar_trazado_arista_grafo(x1, y1, x2, y2, color, ancho, tag, paso=1, total_pasos=8,
+                                             al_terminar=lambda: animar_aristas(idx + 1))
+
+        animar_nodos(0)
+
+    def _animar_aparicion_nodo_grafo(self, nodo, pos, grado, paso=0, total_pasos=5):
+        x, y = pos
+        tag_nodo = f"nodo_g_{nodo.id}"
+        self.canvas_grafo.delete(tag_nodo)
+
+        r = (paso + 1) / total_pasos * 22
+        es_impar = grado % 2 != 0
+        color_relleno = "#C0392B" if es_impar else COLOR_MUSGO
+
+        self.canvas_grafo.create_oval(x - r, y - r, x + r, y + r,
+                                       fill=color_relleno, outline=COLOR_PAPEL, width=2,
+                                       tags=(tag_nodo, nodo.id))
+
+        if paso == total_pasos - 1:
             self.canvas_grafo.create_text(x, y, text=nodo.nombre, fill=COLOR_PAPEL,
-                                           font=(FUENTE_MONO, 8, "bold"))
+                                           font=(FUENTE_MONO, 8, "bold"), tags=(tag_nodo, nodo.id))
             self.canvas_grafo.create_text(x, y + 32, text=f"grado {grado}", fill=COLOR_PAPEL_OSCURO,
-                                           font=(FUENTE_MONO, 7))
+                                           font=(FUENTE_MONO, 7), tags=(tag_nodo, nodo.id))
+        else:
+            self._programar(18, lambda: self._animar_aparicion_nodo_grafo(nodo, pos, grado, paso + 1, total_pasos))
+
+    def _animar_trazado_arista_grafo(self, x1, y1, x2, y2, color, ancho, tag, paso=1, total_pasos=8, al_terminar=None):
+        self.canvas_grafo.delete(tag)
+        frac = paso / total_pasos
+        curr_x = x1 + (x2 - x1) * frac
+        curr_y = y1 + (y2 - y1) * frac
+        self.canvas_grafo.create_line(x1, y1, curr_x, curr_y, fill=color, width=ancho, tags=tag)
+
+        if paso < total_pasos:
+            self._programar(15, lambda: self._animar_trazado_arista_grafo(x1, y1, x2, y2, color, ancho, tag, paso + 1, total_pasos, al_terminar))
+        else:
+            if al_terminar:
+                al_terminar()
 
     # -----------------------------------------------------------
     # Animación de construcción
@@ -445,11 +494,16 @@ class VentanaArbol(tk.Tk):
 
     def reiniciar_animacion(self):
         self._cancelar_animaciones_pendientes()
-        self._cache_puntos_rama = {}
-        self.canvas.delete("all")
-        self._recalcular_layout()
-        generaciones = list(self.arbol.por_generacion().keys())
-        self._animar_generacion(generaciones, 0)
+        pestaña_actual = self.notebook.tab(self.notebook.select(), "text")
+        if "Vista de Grafo" in pestaña_actual:
+            self._animar_vista_grafo()
+        else:
+            self._cache_puntos_rama = {}
+            self.canvas.delete("all")
+            self._recalcular_layout()
+            generaciones = list(self.arbol.por_generacion().keys())
+            self._animar_generacion(generaciones, 0)
+        
 
     def _animar_generacion(self, generaciones, indice):
         if indice >= len(generaciones):
@@ -637,6 +691,17 @@ class VentanaArbol(tk.Tk):
         y = self.canvas.canvasy(evento.y)
         for item in self.canvas.find_overlapping(x, y, x, y):
             id_nodo = next((t for t in self.canvas.gettags(item) if t in self.arbol.nodos), None)
+            if id_nodo:
+                self._mostrar_ficha(self.arbol.nodos[id_nodo])
+                return
+
+    # agregar ver la ficha de la persona en cada nodo del grafo
+    def _al_hacer_clic_grafo(self, evento):
+        x = self.canvas_grafo.canvasx(evento.x)
+        y = self.canvas_grafo.canvasy(evento.y)
+        for item in self.canvas_grafo.find_overlapping(x - 5, y - 5, x + 5, y + 5):
+            tags = self.canvas_grafo.gettags(item)
+            id_nodo = next((k for k in self.arbol.nodos.keys() if str(k) in tags), None)
             if id_nodo:
                 self._mostrar_ficha(self.arbol.nodos[id_nodo])
                 return
