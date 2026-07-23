@@ -129,13 +129,14 @@ class VentanaArbol(tk.Tk):
         tab_arbol.columnconfigure(0, weight=1)
         self.notebook.add(tab_arbol, text="  Árbol Genealógico  ")
 
-        self.canvas = tk.Canvas(tab_arbol, bg=COLOR_FONDO, highlightthickness=0)
+        self.canvas = tk.Canvas(tab_arbol, bg=COLOR_FONDO, highlightthickness=0, cursor= "hand2")
         vbar = tk.Scrollbar(tab_arbol, orient="vertical", command=self.canvas.yview)
         hbar = tk.Scrollbar(tab_arbol, orient="horizontal", command=self.canvas.xview)
         self.canvas.configure(yscrollcommand=vbar.set, xscrollcommand=hbar.set)
         self.canvas.grid(row=0, column=0, sticky="nsew")
         vbar.grid(row=0, column=1, sticky="ns")
         hbar.grid(row=1, column=0, sticky="ew")
+        self.canvas.bind("<Button-1>", self._al_hacer_clic)#arreglo de bug no deja hacer click en la fichas
 
         # --- Pestaña 2: vista de grafo abstracto ---
         tab_grafo = tk.Frame(self.notebook, bg=COLOR_FONDO)
