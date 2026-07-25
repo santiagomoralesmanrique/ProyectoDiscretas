@@ -1,12 +1,100 @@
 # 🌳 Sistema Interactivo de Árbol Genealógico y Simulación en Grafos
 
-Un proyecto de software interactivo desarrollado en **Python (Tkinter)** que aplica los fundamentos teóricos de **Matemáticas Discretas II (Teoría de Grafos)** para modelar árboles genealógicos como grafos, analizar sus propiedades estructurales, calcular caminos de parentesco mediante recorridos de grafos y simular procesos de propagación de características (apellidos, enfermedades virales e inmunidad, y herencia genética).
+Proyecto desarrollado para la asignatura de **Matemáticas Discretas**.
+
+---
+
+## 📝 Descripción
+Un sistema interactivo desarrollado en **Python (Tkinter)** que aplica los fundamentos teóricos de **Matemáticas Discretas (Teoría de Grafos)** para modelar árboles genealógicos como grafos dirigidos acíclicos (DAG), analizar sus propiedades estructurales (matriz de adyacencia, grados de entrada/salida, componentes conexas), calcular caminos de parentesco mediante recorridos BFS, y simular procesos estocásticos de propagación (virus e infecciones con inmunidades personalizadas y herencia genética mendeliana/multifactorial).
+
+El sistema incluye:
+- Visualizador gráfico interactivo de árboles y grafos con tarjetas de información y animación paso a paso.
+- Ventana de **Modo Educativo** interactivo con 4 pestañas pedagógicas explicativas sobre los algoritmos de grafos aplicados.
+- Visualizador interactivo de **Matriz de Adyacencia Dirigida** etiquetada con los nombres de cada persona.
+- Simulador epidemiológico y genético con visualización de propagación y panel de estadísticas en tiempo real.
+- Generador de árboles genealógicos aleatorios respetando restricciones estructurales y biológicas.
+
+---
+
+## 👥 Integrantes
+- **Santiago Morales Manrique**
+- **Juan Sebastián Camacho**
+- **Diego Alejandro Prieto**
+
+---
+
+## ⚙️ Requisitos
+- **Python**: Versión 3.8 o superior.
+- **Biblioteca Estándar**: No requiere dependencias de terceros (`pip install` no es necesario). Funciona nativamente con los módulos integrados de Python:
+  - `tkinter` (interfaz gráfica de usuario)
+  - `math` (cálculos geométricos y de posicionamiento)
+  - `random` (simulaciones estocásticas y generación aleatoria)
+  - `collections.deque` (colas de procesamiento para recorridos BFS)
+  - `unittest` (suite de pruebas automatizadas)
+
+---
+
+## 📦 Instalación
+1. Clonar el repositorio o descargar el código fuente:
+   ```bash
+   git clone https://github.com/santiagomoralesmanrique/ProyectoDiscretas.git
+   ```
+2. Navegar al directorio raíz del proyecto:
+   ```bash
+   cd ProyectoDiscretas
+   ```
+
+---
+
+## 🚀 Ejecución
+
+### Ejecutar la Aplicación Principal
+Para iniciar la interfaz gráfica de usuario (GUI):
+```bash
+python main.py
+```
+
+### Ejecutar las Pruebas Unitarias
+Para correr la suite de pruebas unitarias que validan la lógica de grafos y algoritmos:
+```bash
+python -m unittest test_arbol.py
+```
+
+---
+
+## 💡 Ejemplo de Uso
+1. **Visualización Inicial**: Al abrir la aplicación (`main.py`), se carga una red familiar predeterminada de 19 personas organizada en 4 generaciones (`datos_prueba.py`) y se dibuja el árbol de manera animada.
+2. **Consultar Ficha Técnica**: Haz clic sobre cualquier nodo o tarjeta de persona para abrir un modal con su información detallada: año de nacimiento, estado de vitalidad, reseña biográfica y barras de inmunidad (Gripe, COVID-19, Bacteria).
+3. **Búsqueda de Parentesco (BFS)**:
+   - Selecciona a **Persona A** y **Persona B** desde las listas desplegables del panel lateral.
+   - Haz clic en **"Buscar Parentesco"**. El motor de grafos encontrará la ruta más corta entre ambos nodos e interpretará la relación familiar (ej. *Marta es Madre de Andrés*).
+4. **Simulación Epidemiológica (Virus/Contagio)**:
+   - Selecciona el tipo de enfermedad (*Gripe*, *COVID-19* o *Infección Bacteriana*).
+   - Elige el individuo **Origen de la infección**.
+   - Presiona **"Simular Propagación"**. Observa la transmisión del virus nivel a nivel en el grafo y consulta el panel de estadísticas en tiempo real.
+5. **Modo Educativo y Matriz de Adyacencia**:
+   - Presiona **"Modo Educativo"** en la barra superior para explorar la teoría matemática y el seudocódigo de los algoritmos (DAG, BFS, Epidemiología, Herencia).
+   - Haz clic en **"Ver Matriz de Adyacencia"** para examinar la representación matricial dirigida del grafo con los nombres de las personas.
+
+---
+
+## 📌 Estado Actual del Proyecto
+- **Estado**: **Completado y Funcional** ✅
+- **Funcionalidades Desarrolladas**:
+  - [x] Modelado de árbol genealógico como Grafo Dirigido Acíclico (DAG) y verificación DFS de aciclicidad.
+  - [x] Algoritmo BFS para cálculo del camino de parentesco más corto y su traducción verbal.
+  - [x] Simulador de propagación por niveles con factores de probabilidad base e inmunidad individual.
+  - [x] Simulador de herencia genética mendeliana y multifactorial.
+  - [x] Generador aleatorio de árboles genealógicos válidos ($X \ge 2H - 1$, diferencia generacional $\ge 17$ años, parejas heterosexuales).
+  - [x] Lienzo interactivo en Tkinter con soporte para zoom, desplazamiento (pan) y animaciones de nodos.
+  - [x] Panel de estadísticas de propagación en tiempo real con diseño optimizado para alta legibilidad.
+  - [x] Visualizador de Matriz de Adyacencia Dirigida con nombres de nodos.
+  - [x] Ventana de Modo Educativo con 4 pestañas teóricas sobre los algoritmos empleados.
+  - [x] Cobertura de pruebas unitarias automatizadas (`test_arbol.py`) con resultado 100% exitoso (11/11 OK).
 
 ---
 
 ## 🎯 Núcleo del Proyecto (Conceptos de Matemáticas Discretas)
-
-Siguiendo las recomendaciones pedagógicas del curso, el proyecto centra su arquitectura en **4 pilares fundamentales de Teoría de Grafos**:
 
 ### 1. Representación de Árboles Genealógicos como Grafos Dirigidos Acíclicos (DAG)
 - **Modelado**: Cada persona se representa como un **Nodo** $v \in V$ y cada relación filiativa biológica (padre/madre $\to$ hijo/a) como una **Arista Dirigida** $(u, v) \in E$.
@@ -67,19 +155,6 @@ Para validar la precisión del simulador de propagación epidemiológica, se pre
 
 ---
 
-## 💻 Características del Sistema
-
-- **Visualizador Gráfico Interactivo (`main.py`)**: Interfaz desarrollada en Tkinter con lienzo `Canvas` responsivo, animaciones por capas generación por generación y curvas de Bézier cúbicas para las ramas familiares.
-- **Base de Datos Familiar (`datos_prueba.py`)**: Registros de 19 personas organizadas en 4 generaciones con parejas heterosexuales, género, años de nacimiento e inmunidades.
-- **Generador de Árboles Aleatorios**: Genera grafos aleatorios válidos dados $X$ personas y $H$ pisos/generaciones, haciendo cumplir las siguientes restricciones matemáticas:
-  1. $X \ge 2H - 1$ (mínimo 2 personas por piso para formar parejas con descendencia, 1 en el último piso).
-  2. Parejas heterosexuales exclusivas para procreación.
-  3. Diferencia mínima de año de nacimiento $\ge 17$ años entre padres e hijos.
-  4. Cero huérfanos solteros (todo hijo posee 2 padres acoplados).
-- **Ficha Médica y Biográfica**: Modal al hacer clic sobre cualquier tarjeta que muestra año de nacimiento, indicador de vitalidad (`✝ Fallecido` si nació antes de 1941), barras de inmunidad y reseña biográfica.
-
----
-
 ## 🛠️ Estructura del Código
 
 ```text
@@ -88,40 +163,7 @@ ProyectoDiscretas/
 ├── nodo.py          # Clase Nodo (unidad básica con género, nacimiento e inmunidades)
 ├── arbol.py         # Motor de Grafo (BFS, DFS, validación DAG, conectividad y simulaciones)
 ├── datos_prueba.py  # Base de datos ficticia de 19 personas en 4 generaciones
-├── main.py          # Interfaz gráfica de usuario (GUI Tkinter)
+├── main.py          # Interfaz gráfica de usuario (GUI Tkinter con animación y modo educativo)
 ├── test_arbol.py    # Suite de pruebas unitarias automatizadas (11/11 OK)
 └── README.md        # Documentación principal del proyecto
 ```
-
----
-
-## 🚀 Instalación y Ejecución
-
-### Requisitos Previos
-- Python 3.8 o superior (incluye `tkinter` y `unittest` en la biblioteca estándar).
-
-### Ejecutar la Aplicación
-```bash
-python main.py
-```
-
-### Ejecutar las Pruebas Unitarias
-```bash
-python -m unittest test_arbol.py
-```
-
----
-
-## 🧪 Pruebas Automatizadas
-
-El proyecto cuenta con una suite completa de pruebas unitarias en `test_arbol.py` que verifican:
-- Asignación correcta de atributos de `Nodo` (género, nacimiento, inmunidades).
-- Detección de ciclos en grafos (DAG) y conectividad de componentes.
-- Búsqueda exacta de caminos BFS y traducción de parentesco.
-- Inmunidades específicas por tipo de enfermedad (Gripe, COVID-19, Bacteria).
-- Restricciones del generador aleatorio ($X \ge 2H - 1$ y diferencia de edad $\ge 17$).
-
----
-
-## 👨‍💻 Autores
-- Proyecto desarrollado para la asignatura **Matemáticas Discretas II**.
