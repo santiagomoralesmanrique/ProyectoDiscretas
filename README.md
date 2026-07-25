@@ -160,6 +160,8 @@ Para validar la precisión del simulador de propagación epidemiológica, se pre
 ```text
 ProyectoDiscretas/
 │
+├── docs/
+│   └── IdeaProyecto.pdf # Documento de propuesta del proyecto
 ├── nodo.py          # Clase Nodo (unidad básica con género, nacimiento e inmunidades)
 ├── arbol.py         # Motor de Grafo (BFS, DFS, validación DAG, conectividad y simulaciones)
 ├── datos_prueba.py  # Base de datos ficticia de 19 personas en 4 generaciones
