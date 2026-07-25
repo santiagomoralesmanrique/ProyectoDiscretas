@@ -317,20 +317,64 @@ class VentanaArbol(tk.Tk):
         self.txt_stats.insert("end", "⏳ Esperando simulación...\nPresiona Simular para ver\nlas estadísticas en tiempo real.")
         self.txt_stats.config(state="disabled")
 
+    # Vocabulario de las estadísticas según el tipo de simulación activo.
+    # Cada tipo define el verbo en singular y en plural para que la
+    # oración quede bien conjugada (antes se pegaba una "s" suelta y
+    # quedaba "heredó el apellidos").
+    _VOCAB_STATS = {
+        "Apellido": {
+            "verbo_sing": "heredó el apellido nuevo",
+            "verbo_plur": "heredaron el apellido nuevo",
+            "etiqueta_total": "Con el apellido nuevo",
+            "mostrar_restantes": True, "etiqueta_restantes": "Sin heredarlo",
+        },
+        "Genética Mendeliana": {
+            "verbo_sing": "recibió el alelo mutado",
+            "verbo_plur": "recibieron el alelo mutado",
+            "etiqueta_total": "Portadores/afectados (Aa o AA)",
+            "mostrar_restantes": True, "etiqueta_restantes": "Sanos (aa)",
+        },
+        "Enfermedad Hereditaria": {
+            "verbo_sing": "heredó la enfermedad",
+            "verbo_plur": "heredaron la enfermedad",
+            "etiqueta_total": "Afectados",
+            "mostrar_restantes": True, "etiqueta_restantes": "Sanos",
+        },
+    }
+    # Cualquier tipo que empiece con "Contagio:" usa este vocabulario.
+    _VOCAB_CONTAGIO = {
+        "verbo_sing": "resultó contagiado/a",
+        "verbo_plur": "resultaron contagiados/as",
+        "etiqueta_total": "Infectados",
+        "mostrar_restantes": True, "etiqueta_restantes": "Sanos",
+    }
+
     def _stats_actualizar(self, pasos, idx_paso):
-        """Actualiza el texto de estadísticas al finalizar la ronda idx_paso."""
+        """Actualiza el texto de estadísticas al finalizar la ronda idx_paso.
+
+        El texto se adapta al tipo de simulación elegido: hablar de
+        "afectados/sanos" sólo tiene sentido para contagios y enfermedades;
+        para el apellido o la genética se usa un vocabulario propio, con
+        el verbo bien conjugado en singular o plural según la cantidad.
+        """
         total_personas = len(self.arbol.nodos)
         if total_personas == 0:
             return
 
+        tipo = self.var_sim_tipo.get()
+        if tipo.startswith("Contagio:"):
+            vocab = self._VOCAB_CONTAGIO
+        else:
+            vocab = self._VOCAB_STATS.get(tipo, self._VOCAB_CONTAGIO)
+
         # Acumular todos los nodos revelados hasta esta ronda
-        infectados_acum = set()
+        revelados_acum = set()
         for i in range(idx_paso + 1):
             for nid in pasos[i]:
-                infectados_acum.add(nid)
+                revelados_acum.add(nid)
 
-        total_infectados = len(infectados_acum)
-        porcentaje = (total_infectados / total_personas) * 100
+        total_revelados = len(revelados_acum)
+        porcentaje = (total_revelados / total_personas) * 100
 
         self.txt_stats.config(state="normal")
         self.txt_stats.delete("1.0", "end")
@@ -338,19 +382,28 @@ class VentanaArbol(tk.Tk):
         # Una línea por ronda ya transcurrida
         for i in range(idx_paso + 1):
             cant_ronda = len(pasos[i])
-            self.txt_stats.insert("end", f"🔴 Ronda {i}: {cant_ronda} afectado{'s' if cant_ronda != 1 else ''}\n")
+            sujeto = "persona" if cant_ronda == 1 else "personas"
+            verbo = vocab["verbo_sing"] if cant_ronda == 1 else vocab["verbo_plur"]
+            self.txt_stats.insert(
+                "end",
+                f"Ronda {i}: {cant_ronda} {sujeto} {verbo}\n"
+            )
 
         self.txt_stats.insert("end", "-" * 28 + "\n")
-        self.txt_stats.insert("end", f"🧬 Total: {total_infectados}/{total_personas} ({porcentaje:.1f}%)\n")
+        self.txt_stats.insert(
+            "end",
+            f"{vocab['etiqueta_total']}: {total_revelados}/{total_personas} ({porcentaje:.1f}%)\n"
+        )
 
         if idx_paso + 1 >= len(pasos):
-            sanos = total_personas - total_infectados
-            self.txt_stats.insert("end", f"✅ Sanos: {sanos} | ✔ Simulación completa")
-
-        self.txt_stats.config(state="disabled")
-        # Desplazar al final
-        self.txt_stats.see("end")
-
+            if vocab["mostrar_restantes"]:
+                restantes = total_personas - total_revelados
+                self.txt_stats.insert(
+                    "end",
+                    f"{vocab['etiqueta_restantes']}: {restantes} | Simulación completa"
+                )
+            else:
+                self.txt_stats.insert("end", "Simulación completa")
     # -----------------------------------------------------------
     # Layout
     # -----------------------------------------------------------
