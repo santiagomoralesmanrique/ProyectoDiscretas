@@ -836,4 +836,44 @@ class ArbolGenealogico:
 
         return pasos
 
+    def comparar_con(self, otro_arbol):
+        """
+        Compara este árbol (Árbol 1) con otro_arbol (Árbol 2).
+        Devuelve un diccionario estructurado con la comparación de métricas y propiedades.
+        """
+        p1 = self.analizar_propiedades_discretas()
+        p2 = otro_arbol.analizar_propiedades_discretas()
+
+        _, m1 = self.generar_matriz_adyacencia()
+        _, m2 = otro_arbol.generar_matriz_adyacencia()
+
+        densidad1 = p1['aristas'] / (p1['nodos'] * (p1['nodos'] - 1)) if p1['nodos'] > 1 else 0
+        densidad2 = p2['aristas'] / (p2['nodos'] * (p2['nodos'] - 1)) if p2['nodos'] > 1 else 0
+
+        ones1 = sum(sum(row) for row in m1)
+        ones2 = sum(sum(row) for row in m2)
+
+        grado_prom1 = round((2 * p1['aristas']) / p1['nodos'], 2) if p1['nodos'] > 0 else 0
+        grado_prom2 = round((2 * p2['aristas']) / p2['nodos'], 2) if p2['nodos'] > 0 else 0
+
+        return {
+            "arbol1": p1,
+            "arbol2": p2,
+            "diff_nodos": p1['nodos'] - p2['nodos'],
+            "diff_aristas": p1['aristas'] - p2['aristas'],
+            "densidad1": round(densidad1, 4),
+            "densidad2": round(densidad2, 4),
+            "grado_promedio1": grado_prom1,
+            "grado_promedio2": grado_prom2,
+            "generaciones1": self.generacion_maxima() + 1 if self.nodos else 0,
+            "generaciones2": otro_arbol.generacion_maxima() + 1 if otro_arbol.nodos else 0,
+            "componentes1": self.obtener_componentes_conexas(),
+            "componentes2": otro_arbol.obtener_componentes_conexas(),
+            "ones_matriz1": ones1,
+            "ones_matriz2": ones2,
+            "dim_matriz1": (p1['nodos'], p1['nodos']),
+            "dim_matriz2": (p2['nodos'], p2['nodos']),
+        }
+
+
 
