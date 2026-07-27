@@ -1,69 +1,60 @@
-"""
-nodo.py
--------
-Define la clase Nodo: la unidad básica del árbol genealógico.
-Cada Nodo representa UNA persona y sabe quiénes son sus padres,
-su pareja y sus hijos, así que el árbol completo es, en el fondo,
-una red de objetos Nodo conectados entre sí.
-"""
-
+# nodo.py - clase bsica para representar una persona en el arbol
 
 class Nodo:
-    """Una persona dentro del árbol genealógico."""
-
     def __init__(self, id_persona, nombre, apellido, descripcion, generacion,
-                 genero="M", año_nacimiento=1980,
-                 inmune_gripe=0.5, inmune_covid=0.5, inmune_bacteria=0.5):
-        # --- datos que vienen de la "base de datos" ---
+                 genero="M", ano_nacimiento=1980,
+                 inmune_gripe=0.5, inmune_covid=0.5, inmune_bacteria=0.5, **kwargs):
+        # datos de la persona
         self.id = id_persona
         self.nombre = nombre
         self.apellido = apellido
         self.descripcion = descripcion
-        self.generacion = generacion  # 0 = generación más antigua del árbol
-        self.genero = genero          # 'M' o 'F'
-        self.año_nacimiento = año_nacimiento
+        self.generacion = generacion  # 0 es la mas vieja
+        self.genero = genero          # M o F
+        
+        # permite recibir ano_nacimiento o año_nacimiento por keyword arg
+        ano = kwargs.get("año_nacimiento", ano_nacimiento)
+        self.ano_nacimiento = ano
+        self.año_nacimiento = ano
 
-        # --- atributos de salud (influyen en la probabilidad de contagio) ---
+        # probabilidades de salud / inmunidad
         self.inmune_gripe = inmune_gripe
         self.inmune_covid = inmune_covid
         self.inmune_bacteria = inmune_bacteria
 
-        # --- relaciones con otros nodos ---
-        self.padres = []      # 0, 1 o 2 objetos Nodo (exactamente 2 si se especifican)
-        self.hijos = []       # lista de objetos Nodo
-        self.pareja = None    # objeto Nodo o None
+        # relaciones del grafo
+        self.padres = []      # lista con los papas (max 2)
+        self.hijos = []       # lista de hijos
+        self.pareja = None    # nodo pareja o None
 
-        # --- posición calculada por ArbolGenealogico para dibujar ---
+        # pos para el dibujo en el canvas
         self.x = 0
         self.y = 0
 
-        # --- estados para visualización de caminos y simulaciones ---
+        # flags de estado visual
         self.resaltado = False
-        self.estado_simulado = None  # None, 'infectado', 'sano', 'portador', etc.
+        self.estado_simulado = None  # infectado, sano, etc
 
     def nombre_completo(self):
         return f"{self.nombre} {self.apellido}"
 
     def agregar_hijo(self, nodo_hijo):
-        """Conecta este nodo como padre/madre de nodo_hijo (en ambos sentidos)."""
         if nodo_hijo not in self.hijos:
             self.hijos.append(nodo_hijo)
         if self not in nodo_hijo.padres:
             nodo_hijo.padres.append(self)
 
     def emparejar_con(self, otro_nodo):
-        """Marca a dos nodos como pareja (en ambos sentidos)."""
         self.pareja = otro_nodo
         otro_nodo.pareja = self
 
     def desconectar(self):
-        """Elimina todas las referencias hacia este nodo desde sus padres y pareja."""
-        for padre in self.padres:
-            if self in padre.hijos:
-                padre.hijos.remove(self)
+        for p in self.padres:
+            if self in p.hijos:
+                p.hijos.remove(self)
         if self.pareja is not None:
             self.pareja.pareja = None
             self.pareja = None
 
     def __repr__(self):
-        return f"Nodo({self.nombre_completo()!r}, generacion={self.generacion})"
+        return f"Nodo({self.nombre_completo()!r}, gen={self.generacion})"

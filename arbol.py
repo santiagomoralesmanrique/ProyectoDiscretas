@@ -97,7 +97,7 @@ class ArbolGenealogico:
                 padres_ids=r.get("padres_ids", []),
                 pareja_id=r.get("pareja_id"),
                 genero=r.get("genero", "M"),
-                año_nacimiento=r.get("año_nacimiento", 1980),
+                año_nacimiento=r.get("ano_nacimiento", r.get("año_nacimiento", 1980)),
                 inmune_gripe=r.get("inmune_gripe", 0.5),
                 inmune_covid=r.get("inmune_covid", 0.5),
                 inmune_bacteria=r.get("inmune_bacteria", 0.5),
