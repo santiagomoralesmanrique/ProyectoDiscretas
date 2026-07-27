@@ -163,6 +163,8 @@ La lógica del problema, los algoritmos de teoría de grafos (recorridos BFS y D
 
 Asimismo, se aclara que los datos incluidos en `datos_prueba.py` corresponden a registros totalmente ficticios y sintéticos, creados exclusivamente con fines académicos y demostrativos para evaluar el correcto funcionamiento del software.
 
+Tambien se usó IA para el testeo y pruebas para encontrar errores o bugs.
+
 ---
 
 ## 🛠️ Estructura del Código
