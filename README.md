@@ -155,6 +155,16 @@ Para validar la precisión del simulador de propagación epidemiológica, se pre
 
 ---
 
+## Declaración sobre el Uso de Inteligencia Artificial y Datos Ficticios
+
+Para el proyecto final, se especifica la utilización de herramientas de inteligencia artificial generativa únicamente para el apoyo en el diseño y maquetación de la interfaz gráfica de usuario (`main.py`) y el formato visual del exportador de reportes a PDF (`exportador.py`).
+
+La lógica del problema, los algoritmos de teoría de grafos (recorridos BFS y DFS, verificación de DAG, conectividad y modelo de simulación epidemiológica) y la suite de pruebas unitarias fueron concebidos e implementados directamente por nosotros.
+
+Asimismo, se aclara que los datos incluidos en `datos_prueba.py` corresponden a registros totalmente ficticios y sintéticos, creados exclusivamente con fines académicos y demostrativos para evaluar el correcto funcionamiento del software.
+
+---
+
 ## 🛠️ Estructura del Código
 
 ```text
