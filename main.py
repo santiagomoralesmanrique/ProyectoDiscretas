@@ -16,10 +16,11 @@ Controles:
 """
 
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 
 from arbol import ArbolGenealogico
 import datos_prueba
+import exportador
 
 # ---------------------------------------------------------------
 # Paleta y tipografías (si tu sistema no tiene estas fuentes,
@@ -77,6 +78,10 @@ class VentanaArbol(tk.Tk):
         self.var_sim_origen = tk.StringVar()
         self.var_sim_prob = tk.DoubleVar(value=0.5)
 
+        self.arbol_comparacion = None
+        self.modo_comparacion = "arbol"
+        self.tab_comparacion = None
+
         self._construir_interfaz()
         self._actualizar_opciones_sidebar()
         self.after(200, self.reiniciar_animacion)
@@ -94,11 +99,14 @@ class VentanaArbol(tk.Tk):
 
         botones = tk.Frame(barra, bg=COLOR_FONDO)
         botones.pack(side="right")
-        self._boton(botones, "↻  Reiniciar animación", self.reiniciar_animacion).pack(side="left", padx=4)
-        self._boton(botones, "➕  Agregar persona", self.abrir_dialogo_agregar).pack(side="left", padx=4)
-        self._boton(botones, "🎲  Generar Aleatorio", self.abrir_dialogo_generar_aleatorio).pack(side="left", padx=4)
-        self._boton(botones, "🗑  Quitar última", self.quitar_ultima).pack(side="left", padx=4)
-        self._boton(botones, "📖  ¿Cómo Funciona?", self.abrir_modo_educativo).pack(side="left", padx=4)
+        self._boton(botones, "↻  Reiniciar animación", self.reiniciar_animacion).pack(side="left", padx=2)
+        self._boton(botones, "⚔️  Comparar Árboles", lambda: self.abrir_dialogo_comparar(modo="arbol")).pack(side="left", padx=2)
+        self._boton(botones, "⚔️  Comparar Grafos", lambda: self.abrir_dialogo_comparar(modo="grafo")).pack(side="left", padx=2)
+        self._boton(botones, "📄  Exportar PDF", self.exportar_reporte_pdf).pack(side="left", padx=2)
+        self._boton(botones, "➕  Agregar persona", self.abrir_dialogo_agregar).pack(side="left", padx=2)
+        self._boton(botones, "🎲  Generar Aleatorio", self.abrir_dialogo_generar_aleatorio).pack(side="left", padx=2)
+        self._boton(botones, "🗑  Quitar última", self.quitar_ultima).pack(side="left", padx=2)
+        self._boton(botones, "📖  ¿Cómo Funciona?", self.abrir_modo_educativo).pack(side="left", padx=2)
 
         tk.Label(self, text="Datos de prueba — clic en una tarjeta para ver la ficha completa.",
                  bg=COLOR_FONDO, fg=COLOR_MUSGO, font=(FUENTE_MONO, 9)
@@ -129,14 +137,14 @@ class VentanaArbol(tk.Tk):
         tab_arbol.columnconfigure(0, weight=1)
         self.notebook.add(tab_arbol, text="  Árbol Genealógico  ")
 
-        self.canvas = tk.Canvas(tab_arbol, bg=COLOR_FONDO, highlightthickness=0, cursor= "hand2")
+        self.canvas = tk.Canvas(tab_arbol, bg=COLOR_FONDO, highlightthickness=0, cursor="hand2") # arreglo bug que no dejaba ver descripcion
         vbar = tk.Scrollbar(tab_arbol, orient="vertical", command=self.canvas.yview)
         hbar = tk.Scrollbar(tab_arbol, orient="horizontal", command=self.canvas.xview)
         self.canvas.configure(yscrollcommand=vbar.set, xscrollcommand=hbar.set)
         self.canvas.grid(row=0, column=0, sticky="nsew")
         vbar.grid(row=0, column=1, sticky="ns")
         hbar.grid(row=1, column=0, sticky="ew")
-        self.canvas.bind("<Button-1>", self._al_hacer_clic)#arreglo de bug no deja hacer click en la fichas
+        self.canvas.bind("<Button-1>", self._al_hacer_clic) # arreglo bug que no dejaba ver descripcion
 
         # --- Pestaña 2: vista de grafo abstracto ---
         tab_grafo = tk.Frame(self.notebook, bg=COLOR_FONDO)
@@ -144,13 +152,14 @@ class VentanaArbol(tk.Tk):
         tab_grafo.columnconfigure(0, weight=1)
         self.notebook.add(tab_grafo, text="   Vista de Grafo  ")
 
-        self.canvas_grafo = tk.Canvas(tab_grafo, bg=COLOR_FONDO, highlightthickness=0)
+        self.canvas_grafo = tk.Canvas(tab_grafo, bg=COLOR_FONDO, highlightthickness=0, cursor="hand2")
         vbar_g = tk.Scrollbar(tab_grafo, orient="vertical", command=self.canvas_grafo.yview)
         hbar_g = tk.Scrollbar(tab_grafo, orient="horizontal", command=self.canvas_grafo.xview)
         self.canvas_grafo.configure(yscrollcommand=vbar_g.set, xscrollcommand=hbar_g.set)
         self.canvas_grafo.grid(row=0, column=0, sticky="nsew")
         vbar_g.grid(row=0, column=1, sticky="ns")
         hbar_g.grid(row=1, column=0, sticky="ew")
+        self.canvas_grafo.bind("<Button-1>", self._al_hacer_clic_grafo)
 
         # --- PANEL LATERAL DE CONTROL (Con Scroll) ---
         self.sidebar_container = tk.Frame(contenedor, bg=COLOR_FONDO, width=320)
@@ -202,6 +211,7 @@ class VentanaArbol(tk.Tk):
         f_botones_analisis = tk.Frame(lf_analisis, bg=COLOR_FONDO)
         f_botones_analisis.pack(fill="x", padx=10, pady=4)
         self._boton_chico(f_botones_analisis, "🧮  Ver Matriz", self.abrir_dialogo_matriz).pack(side="left")
+        self._boton_chico(f_botones_analisis, "⚔️  Comparar", lambda: self.abrir_dialogo_comparar(modo="arbol")).pack(side="left", padx=2)
         self._boton_chico(f_botones_analisis, "📊  Calcular Propiedades", self.ejecutar_analisis).pack(side="right")
     
         tk.Label(lf_analisis, text="Colores en 'Vista de Grafo':", bg=COLOR_FONDO, fg=COLOR_PAPEL,
@@ -416,22 +426,25 @@ class VentanaArbol(tk.Tk):
         self.canvas.configure(scrollregion=(0, 0, ancho, alto))
 
     # -----------------------------------------------------------
-    # Animacion del grafo
+    # Animar el grafo de la segunda pestana
     # -----------------------------------------------------------
     def _al_cambiar_pestaña(self, event):
-        """Anima el grafo al cambiar de pestaña"""
+        """Redibuja y anima la pestaña activa al cambiar de pestaña."""
         pestaña_actual = self.notebook.tab(self.notebook.select(), "text")
         if "Vista de Grafo" in pestaña_actual:
             self._animar_vista_grafo()
+        elif "Comparación" in pestaña_actual:
+            if getattr(self, "arbol_comparacion", None):
+                self._redibujar_tab_comparacion()
         else:
             self.reiniciar_animacion()
 
     def _dibujar_vista_grafo(self):
-        """anima el grafo"""
+        """Redibuja animadamente la vista de grafo."""
         self._animar_vista_grafo()
 
     def _animar_vista_grafo(self):
-        """va animando el grafo por nodo y conectando en orden las aristas"""
+        """Dibuja el grafo animando secuencialmente la aparición de nodos y el trazado de aristas."""
         self._cancelar_animaciones_pendientes()
         self.canvas_grafo.delete("all")
         nodos = list(self.arbol.nodos.values())
@@ -483,9 +496,6 @@ class VentanaArbol(tk.Tk):
         # Fase 2: Animar el trazado de cada arista
         def animar_aristas(idx=0):
             if idx >= len(aristas):
-                #sobreponer los nodos para evitar bugs
-                for nodo in nodos:
-                    self.canvas_grafo.tag_raise(f"nodo_g_{nodo.id}")
                 return
             id1, id2, en_camino = aristas[idx]
             x1, y1 = posiciones[id1]
@@ -516,7 +526,6 @@ class VentanaArbol(tk.Tk):
                                            font=(FUENTE_MONO, 8, "bold"), tags=(tag_nodo, nodo.id))
             self.canvas_grafo.create_text(x, y + 32, text=f"grado {grado}", fill=COLOR_PAPEL_OSCURO,
                                            font=(FUENTE_MONO, 7), tags=(tag_nodo, nodo.id))
-            self.canvas_grafo.tag_bind(nodo.id, "<Button-1>", lambda event, n=nodo: self._mostrar_ficha(n))
         else:
             self._programar(18, lambda: self._animar_aparicion_nodo_grafo(nodo, pos, grado, paso + 1, total_pasos))
 
@@ -560,7 +569,6 @@ class VentanaArbol(tk.Tk):
             self._recalcular_layout()
             generaciones = list(self.arbol.por_generacion().keys())
             self._animar_generacion(generaciones, 0)
-        
 
     def _animar_generacion(self, generaciones, indice):
         if indice >= len(generaciones):
@@ -746,20 +754,18 @@ class VentanaArbol(tk.Tk):
     def _al_hacer_clic(self, evento):
         x = self.canvas.canvasx(evento.x)
         y = self.canvas.canvasy(evento.y)
-        for item in self.canvas.find_overlapping(x-5, y-5,x+5,y+5):
-            tags = self.canvas.gettags(item)
-            id_nodo = next((t for t in tags if t in self.arbol.nodos), None)
+        for item in self.canvas.find_overlapping(x, y, x, y):
+            id_nodo = next((t for t in self.canvas.gettags(item) if t in self.arbol.nodos), None)
             if id_nodo:
                 self._mostrar_ficha(self.arbol.nodos[id_nodo])
                 return
 
-    # agregar ver la ficha de la persona en cada nodo del grafo
     def _al_hacer_clic_grafo(self, evento):
         x = self.canvas_grafo.canvasx(evento.x)
         y = self.canvas_grafo.canvasy(evento.y)
-        for item in self.canvas_grafo.find_overlapping(x - 15, y - 15, x + 15, y + 15):
+        for item in self.canvas_grafo.find_overlapping(x - 5, y - 5, x + 5, y + 5):
             tags = self.canvas_grafo.gettags(item)
-            id_nodo = next((k for k in self.arbol.nodos.keys() if str(k) in tags), None)
+            id_nodo = next((t for t in tags if t in self.arbol.nodos), None)
             if id_nodo:
                 self._mostrar_ficha(self.arbol.nodos[id_nodo])
                 return
@@ -1021,6 +1027,7 @@ class VentanaArbol(tk.Tk):
             self.reiniciar_animacion()
             self._actualizar_opciones_sidebar()
 
+    
     # -----------------------------------------------------------
     # Métodos y Acciones del Panel Lateral
     # -----------------------------------------------------------
@@ -1347,6 +1354,435 @@ class VentanaArbol(tk.Tk):
             n.estado_simulado = None
         self.redibujar_arbol_completo()
         self._stats_reset()
+
+    # -----------------------------------------------------------
+    # Funcionalidad de Comparación y Exportación a PDF
+    # -----------------------------------------------------------
+    def exportar_reporte_pdf(self):
+        """Exporta un reporte en PDF del árbol actual o de la comparación activa."""
+        pestaña_actual = self.notebook.tab(self.notebook.select(), "text") if self.notebook.select() else ""
+        
+        if "Comparación" in pestaña_actual and self.arbol_comparacion:
+            filepath = filedialog.asksaveasfilename(
+                title="Guardar Reporte Comparativo en PDF",
+                defaultextension=".pdf",
+                filetypes=[("Archivos PDF", "*.pdf"), ("Todos los archivos", "*.*")]
+            )
+            if not filepath:
+                return
+            try:
+                exportador.generar_reporte_comparacion_pdf(self.arbol, self.arbol_comparacion, filepath)
+                messagebox.showinfo("Reporte Exportado", f"El informe comparativo en PDF fue guardado exitosamente en:\n{filepath}")
+            except Exception as e:
+                messagebox.showerror("Error al Exportar PDF", f"Ocurrió un error al generar el PDF:\n{str(e)}")
+        else:
+            filepath = filedialog.asksaveasfilename(
+                title="Guardar Reporte Genealógico en PDF",
+                defaultextension=".pdf",
+                filetypes=[("Archivos PDF", "*.pdf"), ("Todos los archivos", "*.*")]
+            )
+            if not filepath:
+                return
+            try:
+                exportador.generar_reporte_pdf(self.arbol, filepath)
+                messagebox.showinfo("Reporte Exportado", f"El informe en PDF fue guardado exitosamente en:\n{filepath}")
+            except Exception as e:
+                messagebox.showerror("Error al Exportar PDF", f"Ocurrió un error al generar el PDF:\n{str(e)}")
+
+    def exportar_reporte_comparacion_pdf(self):
+        if not self.arbol_comparacion:
+            messagebox.showwarning("Sin comparación", "Primero debes generar una comparación.")
+            return
+        filepath = filedialog.asksaveasfilename(
+            title="Guardar Reporte Comparativo en PDF",
+            defaultextension=".pdf",
+            filetypes=[("Archivos PDF", "*.pdf"), ("Todos los archivos", "*.*")]
+        )
+        if not filepath:
+            return
+        try:
+            exportador.generar_reporte_comparacion_pdf(self.arbol, self.arbol_comparacion, filepath)
+            messagebox.showinfo("Reporte Exportado", f"El informe comparativo en PDF fue guardado exitosamente en:\n{filepath}")
+        except Exception as e:
+            messagebox.showerror("Error al Exportar PDF", f"Ocurrió un error al generar el PDF:\n{str(e)}")
+
+    def abrir_dialogo_comparar(self, modo="arbol"):
+        DialogoComparar(self, modo=modo, al_confirmar=self._al_confirmar_comparacion)
+
+    def _al_confirmar_comparacion(self, arbol2, modo):
+        self.arbol_comparacion = arbol2
+        self.modo_comparacion = modo
+        self._crear_o_actualizar_tab_comparacion()
+
+    def _crear_o_actualizar_tab_comparacion(self):
+        if getattr(self, "tab_comparacion", None) is None:
+            self.tab_comparacion = tk.Frame(self.notebook, bg=COLOR_FONDO)
+            self.notebook.add(self.tab_comparacion, text="  ⚔️ Comparación  ")
+        
+        self.notebook.select(self.tab_comparacion)
+        
+        # Limpiar contenido anterior
+        for widget in self.tab_comparacion.winfo_children():
+            widget.destroy()
+
+        self.tab_comparacion.rowconfigure(0, weight=1)
+        self.tab_comparacion.columnconfigure(0, weight=1)
+        self.tab_comparacion.columnconfigure(1, weight=0)
+
+        # Contenedor para los 2 lienzos (Árbol/Grafo 1 y 2)
+        f_visuales = tk.Frame(self.tab_comparacion, bg=COLOR_FONDO)
+        f_visuales.grid(row=0, column=0, sticky="nsew", padx=(10, 5), pady=10)
+        f_visuales.rowconfigure(0, weight=1)
+        f_visuales.rowconfigure(1, weight=1)
+        f_visuales.columnconfigure(0, weight=1)
+
+        # --- ÁRBO/GRAFO 1 ---
+        lf1 = tk.LabelFrame(f_visuales, text=f"  1. Estructura Actual (Árbol/Grafo 1) - [{self.modo_comparacion.upper()}]  ",
+                            bg=COLOR_FONDO, fg=COLOR_ORO, font=(FUENTE_DISPLAY, 10, "bold"))
+        lf1.grid(row=0, column=0, sticky="nsew", pady=(0, 5))
+        lf1.rowconfigure(0, weight=1)
+        lf1.columnconfigure(0, weight=1)
+
+        self.canvas_comp1 = tk.Canvas(lf1, bg=COLOR_FONDO, highlightthickness=0)
+        vbar1 = tk.Scrollbar(lf1, orient="vertical", command=self.canvas_comp1.yview)
+        hbar1 = tk.Scrollbar(lf1, orient="horizontal", command=self.canvas_comp1.xview)
+        self.canvas_comp1.configure(yscrollcommand=vbar1.set, xscrollcommand=hbar1.set)
+        self.canvas_comp1.grid(row=0, column=0, sticky="nsew")
+        vbar1.grid(row=0, column=1, sticky="ns")
+        hbar1.grid(row=1, column=0, sticky="ew")
+
+        # --- ÁRBOL/GRAFO 2 ---
+        lf2 = tk.LabelFrame(f_visuales, text=f"  2. Estructura Generada (Árbol/Grafo 2) - [{self.modo_comparacion.upper()}]  ",
+                            bg=COLOR_FONDO, fg=COLOR_ORO, font=(FUENTE_DISPLAY, 10, "bold"))
+        lf2.grid(row=1, column=0, sticky="nsew", pady=(5, 0))
+        lf2.rowconfigure(0, weight=1)
+        lf2.columnconfigure(0, weight=1)
+
+        self.canvas_comp2 = tk.Canvas(lf2, bg=COLOR_FONDO, highlightthickness=0)
+        vbar2 = tk.Scrollbar(lf2, orient="vertical", command=self.canvas_comp2.yview)
+        hbar2 = tk.Scrollbar(lf2, orient="horizontal", command=self.canvas_comp2.xview)
+        self.canvas_comp2.configure(yscrollcommand=vbar2.set, xscrollcommand=hbar2.set)
+        self.canvas_comp2.grid(row=0, column=0, sticky="nsew")
+        vbar2.grid(row=0, column=1, sticky="ns")
+        hbar2.grid(row=1, column=0, sticky="ew")
+
+        # --- PANEL LATERAL DE MÉTRICAS DE COMPARACIÓN ---
+        sidebar_comp = tk.Frame(self.tab_comparacion, bg=COLOR_FONDO, width=340)
+        sidebar_comp.grid(row=0, column=1, sticky="nsew", padx=(5, 10), pady=10)
+        sidebar_comp.grid_propagate(False)
+
+        tk.Label(sidebar_comp, text="RESULTADOS DE COMPARACIÓN", bg=COLOR_FONDO, fg=COLOR_ORO,
+                 font=(FUENTE_DISPLAY, 11, "bold")).pack(fill="x", pady=(0, 8))
+
+        # Cuadro de resultados
+        lf_res = tk.LabelFrame(sidebar_comp, text="  Métricas Comparadas  ", bg=COLOR_FONDO, fg=COLOR_PAPEL,
+                               font=(FUENTE_DISPLAY, 9, "bold"), bd=1, relief="solid")
+        lf_res.pack(fill="both", expand=True, pady=4)
+
+        txt_comp_info = tk.Text(lf_res, bg=COLOR_PAPEL_OSCURO, fg=COLOR_TINTA, font=(FUENTE_MONO, 8),
+                                wrap="word", relief="flat", bd=0, padx=8, pady=8)
+        sc_comp_info = tk.Scrollbar(lf_res, orient="vertical", command=txt_comp_info.yview)
+        txt_comp_info.configure(yscrollcommand=sc_comp_info.set)
+        txt_comp_info.pack(side="left", fill="both", expand=True)
+        sc_comp_info.pack(side="right", fill="y")
+
+        # Rellenar información de comparación
+        comp_data = self.arbol.comparar_con(self.arbol_comparacion)
+        p1 = comp_data["arbol1"]
+        p2 = comp_data["arbol2"]
+
+        res_str = (
+            f"=== 📊 PROPIEDADES DISCRETAS ===\n"
+            f"• Personas (V):\n"
+            f"   Árbol 1: {p1['nodos']}  |  Árbol 2: {p2['nodos']}\n"
+            f"   Diferencia: {comp_data['diff_nodos']:+} personas\n\n"
+            f"• Relaciones (E):\n"
+            f"   Árbol 1: {p1['aristas']}  |  Árbol 2: {p2['aristas']}\n"
+            f"   Diferencia: {comp_data['diff_aristas']:+} relaciones\n\n"
+            f"• Pisos / Generaciones:\n"
+            f"   Árbol 1: {comp_data['generaciones1']}  |  Árbol 2: {comp_data['generaciones2']}\n\n"
+            f"• Densidad del Grafo:\n"
+            f"   Árbol 1: {comp_data['densidad1']}  |  Árbol 2: {comp_data['densidad2']}\n\n"
+            f"• Grado Promedio:\n"
+            f"   Árbol 1: {comp_data['grado_promedio1']}  |  Árbol 2: {comp_data['grado_promedio2']}\n\n"
+            f"• Grado Máximo:\n"
+            f"   Árbol 1: {p1['max_grado']} ({p1['max_grado_nombre'][:12]})\n"
+            f"   Árbol 2: {p2['max_grado']} ({p2['max_grado_nombre'][:12]})\n\n"
+            f"• ¿Es DAG (Acíclico)?:\n"
+            f"   Árbol 1: {'Sí' if p1['dag'] else 'No'}  |  Árbol 2: {'Sí' if p2['dag'] else 'No'}\n\n"
+            f"• ¿Es Conexo?:\n"
+            f"   Árbol 1: {'Sí' if p1['conexo'] else 'No'}  |  Árbol 2: {'Sí' if p2['conexo'] else 'No'}\n\n"
+            f"• Camino Euleriano:\n"
+            f"   Árbol 1: {'Sí' if p1['euleriano'] else 'No'}  |  Árbol 2: {'Sí' if p2['euleriano'] else 'No'}\n\n"
+            f"• Camino Hamiltoniano:\n"
+            f"   Árbol 1: {'Sí' if p1['hamiltoniano'] else 'No'}  |  Árbol 2: {'Sí' if p2['hamiltoniano'] else 'No'}\n\n"
+            f"=== 🧮 MATRICES DE ADYACENCIA ===\n"
+            f"• Dimensiones:\n"
+            f"   Árbol 1: {comp_data['dim_matriz1'][0]}x{comp_data['dim_matriz1'][1]}\n"
+            f"   Árbol 2: {comp_data['dim_matriz2'][0]}x{comp_data['dim_matriz2'][1]}\n"
+            f"• Conexiones Activas (1s):\n"
+            f"   Árbol 1: {comp_data['ones_matriz1']}  |  Árbol 2: {comp_data['ones_matriz2']}\n"
+        )
+        txt_comp_info.insert("1.0", res_str)
+        txt_comp_info.config(state="disabled")
+
+        # Botones de acción en sidebar
+        f_btns = tk.Frame(sidebar_comp, bg=COLOR_FONDO)
+        f_btns.pack(fill="x", pady=6)
+
+        self._boton_chico(f_btns, "🧮 Comparar Matrices", self.abrir_dialogo_comparar_matrices).pack(fill="x", pady=2)
+        self._boton_chico(f_btns, "🎲 Generar Nuevo Árbol 2", lambda: self.abrir_dialogo_comparar(modo=self.modo_comparacion)).pack(fill="x", pady=2)
+        self._boton_chico(f_btns, "📄 Exportar PDF Comparación", self.exportar_reporte_comparacion_pdf).pack(fill="x", pady=2)
+
+        self._redibujar_tab_comparacion()
+
+    def _redibujar_tab_comparacion(self):
+        if not self.arbol_comparacion or not hasattr(self, "canvas_comp1"):
+            return
+
+        if self.modo_comparacion == "arbol":
+            self._renderizar_arbol_estatico(self.canvas_comp1, self.arbol)
+            self._renderizar_arbol_estatico(self.canvas_comp2, self.arbol_comparacion)
+        else:
+            self._renderizar_grafo_estatico(self.canvas_comp1, self.arbol)
+            self._renderizar_grafo_estatico(self.canvas_comp2, self.arbol_comparacion)
+
+    def _renderizar_arbol_estatico(self, canvas, arbol):
+        canvas.delete("all")
+        if not arbol.nodos:
+            return
+        
+        filas = arbol.por_generacion()
+        max_por_fila = max((len(v) for v in filas.values()), default=1)
+        ancho = max(900, max_por_fila * 180)
+        alto = 160 + (arbol.generacion_maxima() + 1) * 160
+        arbol.calcular_posiciones(ancho_lienzo=ancho, alto_fila=160)
+        canvas.configure(scrollregion=(0, 0, ancho, alto))
+
+        # Ramas
+        for nodo in arbol.nodos.values():
+            if nodo.padres:
+                punto_padres = arbol.punto_union_padres(nodo)
+                if punto_padres:
+                    x0, y0 = punto_padres
+                    y0 += 34
+                    x1, y1 = nodo.x, nodo.y - 6
+                    ctrl1 = (x0, (y0 + y1) / 2)
+                    ctrl2 = (x1, (y0 + y1) / 2)
+                    puntos = curva_bezier((x0, y0), ctrl1, ctrl2, (x1, y1), 16)
+                    plano = [coordenada for punto in puntos for coordenada in punto]
+                    canvas.create_line(*plano, fill=COLOR_RAMA, width=2, smooth=True, capstyle="round")
+
+        # Parejas
+        for a, b in arbol.parejas_unicas():
+            canvas.create_line(a.x, a.y, b.x, b.y, fill=COLOR_ORO, width=1.4, dash=(2, 4))
+            mx, my = (a.x + b.x) / 2, (a.y + b.y) / 2
+            canvas.create_oval(mx - 2.5, my - 2.5, mx + 2.5, my + 2.5, fill=COLOR_ORO, outline="")
+
+        # Nodos / Tarjetas
+        w, h = ANCHO_TARJETA, ALTO_TARJETA
+        for nodo in arbol.nodos.values():
+            x0, y0 = nodo.x - w / 2, nodo.y - h / 2
+            x1, y1 = nodo.x + w / 2, nodo.y + h / 2
+            canvas.create_rectangle(x0, y0, x1, y1, fill=COLOR_PAPEL, outline=COLOR_TINTA_SUAVE, width=1)
+            canvas.create_oval(nodo.x - 3, y0 - 3, nodo.x + 3, y0 + 3, fill=COLOR_FONDO, outline=COLOR_TINTA_SUAVE)
+            etiqueta = datos_prueba.ETIQUETAS_GENERACION.get(nodo.generacion, f"Gen {nodo.generacion}")
+            canvas.create_text(nodo.x, y0 + 12, text=etiqueta.upper(), font=(FUENTE_MONO, 7), fill=COLOR_MUSGO)
+            canvas.create_text(nodo.x, y0 + 30, text=nodo.nombre, font=(FUENTE_DISPLAY, 11, "bold"), fill=COLOR_TINTA)
+            canvas.create_text(nodo.x, y0 + 46, text=nodo.apellido, font=(FUENTE_DISPLAY, 9, "italic"), fill=COLOR_TINTA_SUAVE)
+
+    def _renderizar_grafo_estatico(self, canvas, arbol):
+        canvas.delete("all")
+        nodos = list(arbol.nodos.values())
+        n = len(nodos)
+        if n == 0:
+            return
+
+        import math
+        radio = max(130, n * 18)
+        cx, cy = radio + 50, radio + 50
+        posiciones = {}
+        for i, nodo in enumerate(nodos):
+            ang = 2 * math.pi * i / n
+            x = cx + radio * math.cos(ang)
+            y = cy + radio * math.sin(ang)
+            posiciones[nodo.id] = (x, y)
+
+        canvas.configure(scrollregion=(0, 0, cx * 2 + 50, cy * 2 + 50))
+        grados = arbol.obtener_grados()
+        info = arbol.analizar_propiedades_discretas()
+        ruta_ham = info.get("ruta_hamiltoniana") or []
+        aristas_ham = set(zip(ruta_ham, ruta_ham[1:]))
+
+        dibujadas = set()
+        for nodo in nodos:
+            vecinos = list(nodo.hijos)
+            if nodo.pareja:
+                vecinos.append(nodo.pareja)
+            for vecino in vecinos:
+                clave = tuple(sorted([nodo.id, vecino.id]))
+                if clave in dibujadas:
+                    continue
+                dibujadas.add(clave)
+                en_camino = (nodo.id, vecino.id) in aristas_ham or (vecino.id, nodo.id) in aristas_ham
+                x1, y1 = posiciones[nodo.id]
+                x2, y2 = posiciones[vecino.id]
+                color = COLOR_ORO if en_camino else COLOR_TINTA_SUAVE
+                ancho = 3 if en_camino else 1
+                canvas.create_line(x1, y1, x2, y2, fill=color, width=ancho)
+
+        for nodo in nodos:
+            x, y = posiciones[nodo.id]
+            grado = grados[nodo.id]["total"]
+            es_impar = grado % 2 != 0
+            color_relleno = "#C0392B" if es_impar else COLOR_MUSGO
+            canvas.create_oval(x - 20, y - 20, x + 20, y + 20, fill=color_relleno, outline=COLOR_PAPEL, width=2)
+            canvas.create_text(x, y, text=nodo.nombre, fill=COLOR_PAPEL, font=(FUENTE_MONO, 8, "bold"))
+            canvas.create_text(x, y + 30, text=f"grado {grado}", fill=COLOR_PAPEL_OSCURO, font=(FUENTE_MONO, 7))
+
+    def abrir_dialogo_comparar_matrices(self):
+        if not self.arbol_comparacion:
+            messagebox.showinfo("Sin comparación", "Debes generar una comparación primero.")
+            return
+
+        dialogo = tk.Toplevel(self)
+        dialogo.title("Comparación de Matrices de Adyacencia")
+        dialogo.configure(bg=COLOR_PAPEL)
+        dialogo.geometry("900x550")
+        dialogo.geometry(f"+{self.winfo_rootx() + 40}+{self.winfo_rooty() + 40}")
+
+        lbl_titulo = tk.Label(dialogo, text="COMPARACIÓN DE MATRICES DE ADYACENCIA", bg=COLOR_PAPEL, fg=COLOR_TINTA, font=(FUENTE_DISPLAY, 14, "bold"))
+        lbl_titulo.pack(pady=10)
+
+        f_mats = tk.Frame(dialogo, bg=COLOR_PAPEL)
+        f_mats.pack(fill="both", expand=True, padx=15, pady=10)
+        f_mats.columnconfigure(0, weight=1)
+        f_mats.columnconfigure(1, weight=1)
+        f_mats.rowconfigure(0, weight=1)
+
+        # Matriz 1
+        lf_m1 = tk.LabelFrame(f_mats, text="  Matriz Árbol/Grafo 1 (Actual)  ", bg=COLOR_PAPEL, fg=COLOR_TINTA_SUAVE, font=(FUENTE_MONO, 9, "bold"))
+        lf_m1.grid(row=0, column=0, sticky="nsew", padx=5)
+        txt1 = tk.Text(lf_m1, wrap="none", font=(FUENTE_MONO, 8), bg=COLOR_PAPEL_OSCURO, fg=COLOR_TINTA, bd=0, padx=6, pady=6)
+        sc_v1 = tk.Scrollbar(lf_m1, orient="vertical", command=txt1.yview)
+        sc_h1 = tk.Scrollbar(lf_m1, orient="horizontal", command=txt1.xview)
+        txt1.configure(yscrollcommand=sc_v1.set, xscrollcommand=sc_h1.set)
+        txt1.pack(side="left", fill="both", expand=True)
+        sc_v1.pack(side="right", fill="y")
+        sc_h1.pack(side="bottom", fill="x")
+
+        # Matriz 2
+        lf_m2 = tk.LabelFrame(f_mats, text="  Matriz Árbol/Grafo 2 (Comparación)  ", bg=COLOR_PAPEL, fg=COLOR_TINTA_SUAVE, font=(FUENTE_MONO, 9, "bold"))
+        lf_m2.grid(row=0, column=1, sticky="nsew", padx=5)
+        txt2 = tk.Text(lf_m2, wrap="none", font=(FUENTE_MONO, 8), bg=COLOR_PAPEL_OSCURO, fg=COLOR_TINTA, bd=0, padx=6, pady=6)
+        sc_v2 = tk.Scrollbar(lf_m2, orient="vertical", command=txt2.yview)
+        sc_h2 = tk.Scrollbar(lf_m2, orient="horizontal", command=txt2.xview)
+        txt2.configure(yscrollcommand=sc_v2.set, xscrollcommand=sc_h2.set)
+        txt2.pack(side="left", fill="both", expand=True)
+        sc_v2.pack(side="right", fill="y")
+        sc_h2.pack(side="bottom", fill="x")
+
+        # Generar texto matriz 1
+        ids1, m1 = self.arbol.generar_matriz_adyacencia()
+        if ids1:
+            nombres1 = [self.arbol.nodos[nid].nombre[:6] for nid in ids1]
+            hdr1 = f"{'Nom':<7}" + "".join([f"{nom:^6}" for nom in nombres1]) + "\n" + "-" * 40 + "\n"
+            txt1.insert("end", hdr1)
+            for i, row in enumerate(m1):
+                txt1.insert("end", f"{nombres1[i]:<7}" + "".join([f"{val:^6}" for val in row]) + "\n")
+        txt1.config(state="disabled")
+
+        # Generar texto matriz 2
+        ids2, m2 = self.arbol_comparacion.generar_matriz_adyacencia()
+        if ids2:
+            nombres2 = [self.arbol_comparacion.nodos[nid].nombre[:6] for nid in ids2]
+            hdr2 = f"{'Nom':<7}" + "".join([f"{nom:^6}" for nom in nombres2]) + "\n" + "-" * 40 + "\n"
+            txt2.insert("end", hdr2)
+            for i, row in enumerate(m2):
+                txt2.insert("end", f"{nombres2[i]:<7}" + "".join([f"{val:^6}" for val in row]) + "\n")
+        txt2.config(state="disabled")
+
+        tk.Button(dialogo, text="Cerrar", command=dialogo.destroy, bg=COLOR_BOTON, fg=COLOR_BOTON_TEXTO,
+                  font=(FUENTE_MONO, 9), relief="flat", padx=15, pady=6).pack(pady=10)
+
+
+class DialogoComparar(tk.Toplevel):
+    """Formulario para ingresar X (personas) y H (pisos/generaciones) y generar un segundo árbol para comparación."""
+
+    def __init__(self, master, modo="arbol", al_confirmar=None):
+        super().__init__(master)
+        self.modo = modo
+        self.al_confirmar = al_confirmar
+
+        titulo_modo = "Comparación de Árboles" if modo == "arbol" else "Comparación de Grafos"
+        self.title(titulo_modo)
+        self.configure(bg=COLOR_PAPEL)
+        self.resizable(False, False)
+        self.geometry(f"+{master.winfo_rootx() + 100}+{master.winfo_rooty() + 80}")
+        self.grab_set()
+
+        campos = tk.Frame(self, bg=COLOR_PAPEL, padx=22, pady=20)
+        campos.pack(fill="both", expand=True)
+
+        self.var_personas = tk.IntVar(value=15)
+        self.var_pisos = tk.IntVar(value=5)
+
+        tk.Label(campos, text=f"⚔️ {titulo_modo.upper()}", bg=COLOR_PAPEL, fg=COLOR_TINTA,
+                 font=(FUENTE_DISPLAY, 12, "bold")).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 10))
+
+        tk.Label(campos, text="Número de personas (X) para Árbol/Grafo 2:", bg=COLOR_PAPEL, fg=COLOR_TINTA_SUAVE,
+                 font=(FUENTE_MONO, 9, "bold")).grid(row=1, column=0, sticky="w", pady=(0, 2))
+        tk.Entry(campos, textvariable=self.var_personas, width=15, font=(FUENTE_CUERPO, 10)
+                 ).grid(row=1, column=1, sticky="w", pady=(0, 2), padx=(10, 0))
+
+        tk.Label(campos, text="Número de pisos / gen (H) para Árbol/Grafo 2:", bg=COLOR_PAPEL, fg=COLOR_TINTA_SUAVE,
+                 font=(FUENTE_MONO, 9, "bold")).grid(row=2, column=0, sticky="w", pady=(8, 2))
+        tk.Entry(campos, textvariable=self.var_pisos, width=15, font=(FUENTE_CUERPO, 10)
+                 ).grid(row=2, column=1, sticky="w", pady=(8, 2), padx=(10, 0))
+
+        tk.Label(campos,
+                 text="Se construirá un segundo objeto de forma aleatoria para\ncomparar sus métricas, matrices y propiedades con el actual.\nRestricción: X ≥ 2H−1",
+                 bg=COLOR_PAPEL, fg=COLOR_MUSGO, font=(FUENTE_CUERPO, 8, "italic"), justify="left"
+                 ).grid(row=3, column=0, columnspan=2, sticky="w", pady=(10, 0))
+
+        botones = tk.Frame(campos, bg=COLOR_PAPEL)
+        botones.grid(row=4, column=0, columnspan=2, sticky="e", pady=(18, 0))
+
+        tk.Button(botones, text="Cancelar", command=self.destroy, bg=COLOR_PAPEL_OSCURO,
+                  fg=COLOR_TINTA, relief="flat", padx=10, pady=5).pack(side="right", padx=(6, 0))
+        tk.Button(botones, text="Comparar", command=self._confirmar, bg=COLOR_ORO,
+                  fg=COLOR_TINTA, relief="flat", padx=10, pady=5).pack(side="right")
+
+    def _confirmar(self):
+        try:
+            x = self.var_personas.get()
+            h = self.var_pisos.get()
+        except tk.TclError:
+            messagebox.showwarning("Datos inválidos", "Por favor ingresa números enteros válidos.", parent=self)
+            return
+
+        if x <= 0 or h <= 0:
+            messagebox.showwarning("Datos inválidos", "Los números de personas y pisos deben ser mayores a cero.", parent=self)
+            return
+
+        minimo = 2 * h - 1
+        if x < minimo:
+            messagebox.showwarning("Imposible armar",
+                                   f"No es posible armar un árbol de {h} pisos con {x} personas.\n"
+                                   f"Se requieren al menos {minimo} personas (2H−1).",
+                                   parent=self)
+            return
+
+        arbol2 = ArbolGenealogico()
+        try:
+            arbol2.generar_arbol_aleatorio(x, h)
+        except Exception as e:
+            messagebox.showerror("Error", f"Ocurrió un error al generar el árbol de comparación: {str(e)}", parent=self)
+            return
+
+        self.destroy()
+        if self.al_confirmar:
+            self.al_confirmar(arbol2, self.modo)
 
 
 class DialogoAgregarPersona(tk.Toplevel):
